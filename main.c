@@ -79,7 +79,10 @@ void fstr_slowprint(const fstr *str) {
     }
 }
 
-char *fstr_as_C(const fstr *from) {
+/// Returns the fstr as a C string. This string MUST later be freed.
+/// \param from
+/// \return
+char *fstr_as_C_heap(const fstr *from) {
     //Get the length of our from string
     var len = fstr_length(from);
 
@@ -188,10 +191,13 @@ void fstr_append_format_C(fstr *str, const char *format, ...) {
     var finalSize = startSize + addSize;
 
     //Reallocate the data of the string to fit our newsize
-    str->data = realloc(str->data, finalSize);
+    str->data = realloc(str->data, finalSize * sizeof(chr));
 
     //Do our vsprintf to the data, offset by our start size as to write our data to our unneeded stuff
     vsprintf(str->data + startSize, format, args);
+
+
+    str->end = asptr(&str->data[finalSize] / sizeof(chr));
 
     va_end(args);
 }
@@ -211,13 +217,25 @@ void fstr_replace_char(fstr *str, chr from, chr to) {
     }
 }
 
+/// Returns 1 if the strings match and 0 if they do not.
+/// \param a
+/// \param b
+/// \return
 uint8_t fstr_equals(fstr *a, fstr *b) {
     var alen = fstr_length(a);
     var blen = fstr_length(b);
 
     if (alen != blen) {
-//        return false;
+        return 0;
     }
+
+    for (int i = 0; i < alen; i++) {
+        if (a->data[i] != b->data[i]) {
+            return 0;
+        }
+    }
+
+    return 1;
 }
 
 void start_stopwatch(clock_t *start_time) {
