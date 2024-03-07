@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
+#include <time.h>
 
 #define var __auto_type
 #define PTR_SIZE uint64_t
@@ -12,6 +13,7 @@
 #define asptr(a) ((PTR_SIZE) a)
 
 //TODO MEMORY ARENA MACROS
+
 
 typedef struct {
     //The address of the last character in our string, inclusive.
@@ -145,33 +147,107 @@ fstr *fstr_from_length(uint64_t length, const chr fill) {
     str->end = asptr(&str->data[length]);
 }
 
-void fstr_from_format(fstr *str, const char *format, ...) {
+/// Creates a fstr from a C format string
+/// \param format Like printf
+/// \param ... Args
+/// \return
+fstr *fstr_from_format_C(const char *format, ...) {
+
+    //Varargs stuff
     va_list args;
     va_start(args, format);
 
-    int size = vsprintf_s(NULL, 0, format, args);
+    //Calculate the size of the buffer
+    int size = _vscprintf(format, args);
 
+    //Create the new string, we divide by sizeof chr in case chars are bigger
+    //TODO This divide could be wrong
+    var str = fstr_from_length(size / sizeof(chr), '!');
+
+    //Write the varargs to the string with the proper format
+    vsprintf(str->data, format, args);
+
+    va_end(args);
+
+    return str;
+}
+
+
+/// Appends a formatted C string to the fstr
+/// \param str The string to be appended to
+/// \param format The C string format of the data to be added
+/// \param ... Takes varargs
+void fstr_append_format_C(fstr *str, const char *format, ...) {
+
+    va_list args;
+    va_start(args, format);
+
+    //Get the sizes
+    var startSize = fstr_length(str) * sizeof(chr);
+    var addSize = _vscprintf(format, args) / sizeof(chr);
+    var finalSize = startSize + addSize;
+
+    //Reallocate the data of the string to fit our newsize
+    str->data = realloc(str->data, finalSize);
+
+    //Do our vsprintf to the data, offset by our start size as to write our data to our unneeded stuff
+    vsprintf(str->data + startSize, format, args);
 
     va_end(args);
 }
 
+/// Replaces any instances of the from character with the to character
+/// \param str
+/// \param from
+/// \param to
+void fstr_replace_char(fstr *str, chr from, chr to) {
+
+    var len = fstr_length(str);
+
+    for (int i = 0; i < len; i++) {
+        if (str->data[i] == from) {
+            str->data[i] = to;
+        }
+    }
+}
+
+uint8_t fstr_equals(fstr *a, fstr *b) {
+    var alen = fstr_length(a);
+    var blen = fstr_length(b);
+
+    if (alen != blen) {
+//        return false;
+    }
+}
+
+void start_stopwatch(clock_t *start_time) {
+    *start_time = clock();
+}
+
+void stop_stopwatch(clock_t start_time) {
+    clock_t end_time = clock();
+    double elapsed_time = ((double) (end_time - start_time) * 1000) / CLOCKS_PER_SEC;
+    printf("Elapsed time: %.2f milliseconds\n", elapsed_time);
+}
+
+
 int main() {
-//    var str = fstr_from_C(":)");
-//
-//    char buf[6] = {0};
-//    for (int i = 0; i < 1000; i++) {
-//        sprintf(buf, "%d\n", i);
-//        fstr_append_C(str, buf);
-//    }
-//    fstr_slowprint(str);
-//
-//    fstr_free(str);
 
+    clock_t t = 0;
+    start_stopwatch(&t);
 
-    var tmp = fstr_from_length(3, '0');
-//    fstr_slowprint(tmp);
+    var str = fstr_from_C("000010101010");
 
-    printf("%s", fstr_as_C(tmp));
+    for (uint64_t i = 0; i < 1000; i++) {
+        fstr_append_format_C(str, "%d-", i);
+    }
+    fstr_replace_char(str, '1', '0');
+
+    fstr_slowprint(str);
+
+    stop_stopwatch(t);
+
+    fstr_free(str);
 
     return 0;
 }
