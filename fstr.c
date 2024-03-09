@@ -114,18 +114,19 @@ void fstr_append_C(fstr *str, const char *buf) {
         return;
     }
 
+    //Calculate lengths
     var startLen = fstr_length(str);
     var bufLen = _internal_C_string_length(buf);
     var newLen = startLen + bufLen;
 
+    //Realloc the string
     str->data = realloc(str->data, newLen * sizeof(chr));
 
+    //Copy the string memory in
     memcpy(str->data + startLen * sizeof(chr), buf, bufLen * sizeof(chr));
-    _internal_fstr_set_end(str, newLen);
 
-    //    var tmp = fstr_from_C(buf);
-//    fstr_append(str, tmp);
-//    free(tmp);
+    //Recalculate the end
+    _internal_fstr_set_end(str, newLen);
 }
 
 fstr *fstr_from_length(uint64_t length, const char fill) {
@@ -172,7 +173,6 @@ fstr *fstr_from_format_C(const char *format, ...) {
 
     return str;
 }
-
 
 void fstr_append_format_C(fstr *str, const char *format, ...) {
 
