@@ -22,16 +22,16 @@
 /////////////////////////////
 ///      DEFINITIONS      ///
 /////////////////////////////
-
 #pragma region Definitions
 
 ///String errors, these will be updated on the fstr struct that you are using, in the error field
-typedef enum {
-    None = 0,
-    IndexOutOfBounds = 1,
-    AllocFailed = 2,
-    NullStringArg = 3,
-} __attribute__ ((__packed__)) STRING_ERROR;
+typedef enum : uint8_t {
+    STR_ERR_None = 0,
+    STR_ERR_IndexOutOfBounds = 1,
+    STR_ERR_AllocFailed = 2,
+    STR_ERR_NullStringArg = 3,
+    STR_ERR_INCORRECT_CHAR_POINTER = 4
+} STR_ERR;
 
 ///The main fstr struct, this is a new string type that uses a pointer to the end of the char array to control for length.
 typedef struct {
@@ -39,7 +39,7 @@ typedef struct {
     PTR_SIZE end;
 
     //Whether an error occurred on the string operation
-    STRING_ERROR error;
+    STR_ERR error;
 
     //The starting pointer of our string data
     chr *data;
@@ -117,20 +117,26 @@ void fstr_pad(fstr *str, PTR_SIZE targetLength, char pad, int8_t side);
 /// \param str
 /// \param from
 /// \param to
-void fstr_replace_char(fstr *str, chr from, chr to);
+void fstr_replace_chr(fstr *str, chr from, chr to);
+
+void fstr_replace_chr_at(fstr *str, PTR_SIZE index, chr c);
 
 #pragma endregion String_Modification
 
 #pragma region String_Utilities
 
 /// Returns the fstr as a C string. This string MUST later be freed.
-/// \param from
-/// \return
+/// \param from The string to be used
+/// \return The char * buffer
 char *fstr_as_C_heap(const fstr *from);
 
 /// Prints the string one character at a time
 /// \param str The string to be printed
-void fstr_slowprint(const fstr *str);
+void fstr_print_slow(const fstr *str);
+
+/// Prints the string at once by writing to the STDOUT
+/// \param str The string to be printed
+void fstr_print(const fstr *str);
 
 /// Frees the fstr and its data
 /// \param str The string to free
@@ -139,7 +145,7 @@ void fstr_free(fstr *str);
 /// Returns the length of the string
 /// \param str The corresponding string
 /// \return The length of the string. Ex: ":)" returns 2
-PTR_SIZE fstr_length(const fstr *str);
+PTR_SIZE fstr_length(fstr *str);
 
 /// Whether or not the string is in a state of error
 /// \param str

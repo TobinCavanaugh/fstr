@@ -7,6 +7,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdarg.h>
+#include <unistd.h>
 
 #define var __auto_type
 #define asptr(a) ((PTR_SIZE) a)
@@ -30,6 +31,25 @@ unsigned long long _internal_C_string_length(const char *buf) {
     return i;
 }
 
+
+//void fstr_copy(fstr *destination, fstr *source) {
+//    var slen = fstr_length(source);
+//}
+
+void fstr_substr(fstr *str, int min, int max) {
+
+}
+
+void fstr_replace_chr_at(fstr *str, uint64_t index, char c) {
+    var len = fstr_length(str);
+    if (index >= len) {
+        str->error = STR_ERR_IndexOutOfBounds;
+        return;
+    }
+
+    str->data[index] = c;
+}
+
 fstr *fstr_from_C(const char *buf) {
 
     //Calculate the size of our buffer
@@ -42,7 +62,7 @@ fstr *fstr_from_C(const char *buf) {
     str->data = malloc(bufSize);
 
     //Reset error
-    str->error = None;
+    str->error = STR_ERR_None;
 
     //Copy in our buffer to our data
     memcpy(str->data, buf, bufSize);
@@ -53,7 +73,11 @@ fstr *fstr_from_C(const char *buf) {
     return str;
 }
 
-PTR_SIZE fstr_length(const fstr *str) {
+PTR_SIZE fstr_length(fstr *str) {
+    if (asptr(str->data) > str->end) {
+        str->error = STR_ERR_INCORRECT_CHAR_POINTER;
+    }
+
     var diff = asptr(str->end) - asptr(str->data);
     return diff;
 }
@@ -63,10 +87,16 @@ void fstr_free(fstr *str) {
     free(str);
 }
 
-void fstr_slowprint(const fstr *str) {
+void fstr_print_slow(const fstr *str) {
     for (int i = 0; i < fstr_length(str); i++) {
         printf("%c", str->data[i]);
     }
+}
+
+
+void fstr_print(const fstr *str) {
+    var len = fstr_length(str);
+    write(STDOUT_FILENO, str->data, len);
 }
 
 char *fstr_as_C_heap(const fstr *from) {
@@ -88,7 +118,7 @@ char *fstr_as_C_heap(const fstr *from) {
 void fstr_append(fstr *str, const fstr *buf) {
 
     if (buf == NULL) {
-        str->error = NullStringArg;
+        str->error = STR_ERR_NullStringArg;
         return;
     }
 
@@ -110,7 +140,7 @@ void fstr_append(fstr *str, const fstr *buf) {
 void fstr_append_C(fstr *str, const char *buf) {
 
     if (buf == NULL) {
-        str->error = NullStringArg;
+        str->error = STR_ERR_NullStringArg;
         return;
     }
 
@@ -143,7 +173,7 @@ fstr *fstr_from_length(uint64_t length, const char fill) {
     str->data = malloc(length * sizeof(chr));
 
     //Set our error to 0
-    str->error = None;
+    str->error = STR_ERR_None;
 
     //Set all the memory to our fill character
     memset(str->data, fill, length * sizeof(chr));
@@ -177,7 +207,7 @@ fstr *fstr_from_format_C(const char *format, ...) {
 void fstr_append_format_C(fstr *str, const char *format, ...) {
 
     if (format == NULL) {
-        str->error = NullStringArg;
+        str->error = STR_ERR_NullStringArg;
         return;
     }
 
@@ -201,7 +231,7 @@ void fstr_append_format_C(fstr *str, const char *format, ...) {
     va_end(args);
 }
 
-void fstr_replace_char(fstr *str, char from, char to) {
+void fstr_replace_chr(fstr *str, chr from, chr to) {
 
     var len = fstr_length(str);
 
@@ -215,7 +245,7 @@ void fstr_replace_char(fstr *str, char from, char to) {
 uint8_t fstr_equals(fstr *a, fstr *b) {
 
     if (b == NULL) {
-        a->error = NullStringArg;
+        a->error = STR_ERR_NullStringArg;
         return 0;
     }
 
@@ -250,7 +280,7 @@ void _internal_fstr_insert(fstr *str, const char *add, PTR_SIZE index, PTR_SIZE 
     }
 
     if (index >= finalLen) {
-        str->error = IndexOutOfBounds;
+        str->error = STR_ERR_IndexOutOfBounds;
         return;
     }
 
@@ -274,7 +304,7 @@ void _internal_fstr_insert(fstr *str, const char *add, PTR_SIZE index, PTR_SIZE 
 void fstr_insert(fstr *str, const fstr *add, uint64_t index) {
 
     if (add == NULL) {
-        str->error = NullStringArg;
+        str->error = STR_ERR_NullStringArg;
         return;
     }
 
@@ -283,7 +313,7 @@ void fstr_insert(fstr *str, const fstr *add, uint64_t index) {
 
 void fstr_insert_c(fstr *str, const char *add, uint64_t index) {
     if (add == NULL) {
-        str->error = NullStringArg;
+        str->error = STR_ERR_NullStringArg;
         return;
     }
 
@@ -295,7 +325,7 @@ void fstr_pad(fstr *str, uint64_t targetLength, char pad, int8_t side) {
     var currentLen = fstr_length(str);
 
     if (targetLength <= currentLen) {
-        str->error = IndexOutOfBounds;
+        str->error = STR_ERR_IndexOutOfBounds;
         return;
     }
 

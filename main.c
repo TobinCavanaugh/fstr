@@ -2,6 +2,7 @@
 #include <time.h>
 #include <sys/time.h>
 #include <stdio.h>
+#include <unistd.h>
 #include "fstr.h"
 
 #define var __auto_type
@@ -25,23 +26,25 @@ double stop_stopwatch(struct timeval start_time) {
 }
 
 int main() {
+    var str = fstr_from_format_C("(%d)(%d)(%d)", 10, 20, 30);
 
-    var t = start_stopwatch();
+    int ITERATIONS = 1000;
 
-    var str = fstr_from_C(":)");
+    var tv = start_stopwatch();
+    for (int i = 0; i < ITERATIONS; i++) {
+        fstr_print_slow(str);
+    }
+    var slowPrint = stop_stopwatch(tv);
 
-//    fstr_append_format_C(str, "~~~~~~%d~~~~~~%f", 10, 1.24);
+    tv = start_stopwatch();
 
-    stop_stopwatch(t);
+    for (int i = 0; i < ITERATIONS; i++) {
+        fstr_print(str);
+    }
 
-    fstr_slowprint(str);
+    var fastPrint = stop_stopwatch(tv);
 
-    var lineStr = fstr_from_C("");
-    fstr_pad(lineStr, 10, '-', 0);
-
-    printf("\n");
-    fstr_slowprint(lineStr);
-    printf("\nElapsed: %ldms", t.tv_usec / 1000);
+    printf("Slow Print: %fms\nFast Print: %fms", slowPrint, fastPrint);
 
     return 0;
 }
