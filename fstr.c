@@ -38,7 +38,7 @@ llu internal_C_string_length(const char *buf) {
 //    var slen = fstr_length(source);
 //}
 
-void fstr_substr(fstr *str, int min, int max) {
+fstr *fstr_substr(fstr *str, int min, int max) {
 
 }
 
@@ -76,7 +76,6 @@ fstr *fstr_from_C(const char *buf) {
 }
 
 PTR_SIZE fstr_length(const fstr *str) {
-
     uint64_t diff = asptr(str->end) - asptr(str->data);
     return diff;
 }
@@ -84,7 +83,10 @@ PTR_SIZE fstr_length(const fstr *str) {
 uint8_t internal_validate_fstr(fstr *str) {
     if (asptr(str->data) > str->end) {
         str->error = STR_ERR_INCORRECT_CHAR_POINTER;
+        return 0;
     }
+
+    return 1;
 }
 
 void fstr_free(fstr *str) {
@@ -198,6 +200,8 @@ fstr *fstr_from_length(uint64_t length, const char fill) {
     //Set the end pointer to the last character of our stringF
 //    str->end = asptr(&str->data[length]);
     internal_fstr_set_end(str, length);
+
+    return str;
 }
 
 fstr *fstr_from_format_C(const char *format, ...) {
