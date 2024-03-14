@@ -29,8 +29,9 @@ typedef enum : uint8_t {
     STR_ERR_None = 0,
     STR_ERR_IndexOutOfBounds = 1,
     STR_ERR_AllocFailed = 2,
-    STR_ERR_NullStringArg = 3,
-    STR_ERR_INCORRECT_CHAR_POINTER = 4
+    STR_ERR_ReallocFailed = 3,
+    STR_ERR_NullStringArg = 4,
+    STR_ERR_INCORRECT_CHAR_POINTER = 5
 } STR_ERR;
 
 ///The main fstr struct, this is a new string type that uses a pointer to the end of the char array to control for length.
@@ -145,7 +146,7 @@ void fstr_free(fstr *str);
 /// Returns the length of the string
 /// \param str The corresponding string
 /// \return The length of the string. Ex: ":)" returns 2
-PTR_SIZE fstr_length(fstr *str);
+PTR_SIZE fstr_length(const fstr *str);
 
 /// Whether or not the string is in a state of error
 /// \param str

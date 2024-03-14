@@ -26,7 +26,7 @@ double stop_stopwatch(struct timeval start_time) {
 }
 
 int main() {
-    var str = fstr_from_format_C("(%d)(%d)(%d)", 10, 20, 30);
+    var str = fstr_from_C("1234567890_");
 
     int ITERATIONS = 1000;
 
@@ -36,6 +36,8 @@ int main() {
     }
     var slowPrint = stop_stopwatch(tv);
 
+    printf("\n------------\n");
+
     tv = start_stopwatch();
 
     for (int i = 0; i < ITERATIONS; i++) {
@@ -44,7 +46,7 @@ int main() {
 
     var fastPrint = stop_stopwatch(tv);
 
-    printf("Slow Print: %fms\nFast Print: %fms", slowPrint, fastPrint);
+    printf("\n------\nSlow Print: %fms\nFast Print: %fms", slowPrint, fastPrint);
 
     return 0;
 }

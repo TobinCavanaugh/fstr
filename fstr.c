@@ -10,19 +10,19 @@
 #include <unistd.h>
 
 #define var __auto_type
-#define asptr(a) ((PTR_SIZE) a)
+#define asptr(a) ((PTR_SIZE) (a))
 
 /// Sets the end pointer of the fstr
 /// \param str
 /// \param newLength
-void _internal_fstr_set_end(fstr *str, PTR_SIZE newLength) {
+void internal_fstr_set_end(fstr *str, PTR_SIZE newLength) {
     str->end = asptr(&str->data[newLength]);
 }
 
 /// Custom String Length function
 /// \param buf The string to check
 /// \return The length of the string, NOT including the null terminator
-unsigned long long _internal_C_string_length(const char *buf) {
+unsigned long long internal_C_string_length(const char *buf) {
     int i = 0;
     while (buf[i] != '\0') {
         i++;
@@ -53,7 +53,7 @@ void fstr_replace_chr_at(fstr *str, uint64_t index, char c) {
 fstr *fstr_from_C(const char *buf) {
 
     //Calculate the size of our buffer
-    var bufSize = _internal_C_string_length(buf) * sizeof(chr);
+    var bufSize = internal_C_string_length(buf) * sizeof(chr);
 
     //Malloc our struct
     fstr *str = malloc(sizeof(fstr));
@@ -73,13 +73,16 @@ fstr *fstr_from_C(const char *buf) {
     return str;
 }
 
-PTR_SIZE fstr_length(fstr *str) {
-    if (asptr(str->data) > str->end) {
-        str->error = STR_ERR_INCORRECT_CHAR_POINTER;
-    }
+PTR_SIZE fstr_length(const fstr *str) {
 
     var diff = asptr(str->end) - asptr(str->data);
     return diff;
+}
+
+uint8_t internal_validate_fstr(fstr *str) {
+    if (asptr(str->data) > str->end) {
+        str->error = STR_ERR_INCORRECT_CHAR_POINTER;
+    }
 }
 
 void fstr_free(fstr *str) {
@@ -92,7 +95,6 @@ void fstr_print_slow(const fstr *str) {
         printf("%c", str->data[i]);
     }
 }
-
 
 void fstr_print(const fstr *str) {
     var len = fstr_length(str);
@@ -130,11 +132,17 @@ void fstr_append(fstr *str, const fstr *buf) {
     //Reallocate our string data to include room for our new buf
     str->data = realloc(str->data, newLength * sizeof(chr));
 
+    //Return an error if alloc fails
+    if (str->data == NULL) {
+        str->error = STR_ERR_ReallocFailed;
+        return;
+    }
+
     //Copy the data from our buf onto our str data with an offset of our initial size in bytes
     memcpy(str->data + startLength * sizeof(chr), buf->data, bufLength * sizeof(chr));
 
     //Set the end to the pointer to the last character of our new string
-    _internal_fstr_set_end(str, newLength);
+    internal_fstr_set_end(str, newLength);
 }
 
 void fstr_append_C(fstr *str, const char *buf) {
@@ -146,17 +154,23 @@ void fstr_append_C(fstr *str, const char *buf) {
 
     //Calculate lengths
     var startLen = fstr_length(str);
-    var bufLen = _internal_C_string_length(buf);
+    var bufLen = internal_C_string_length(buf);
     var newLen = startLen + bufLen;
 
     //Realloc the string
     str->data = realloc(str->data, newLen * sizeof(chr));
 
+    //Return an error if realloc fails
+    if (str->data == NULL) {
+        str->error = STR_ERR_ReallocFailed;
+        return;
+    }
+
     //Copy the string memory in
     memcpy(str->data + startLen * sizeof(chr), buf, bufLen * sizeof(chr));
 
     //Recalculate the end
-    _internal_fstr_set_end(str, newLen);
+    internal_fstr_set_end(str, newLen);
 }
 
 fstr *fstr_from_length(uint64_t length, const char fill) {
@@ -180,7 +194,7 @@ fstr *fstr_from_length(uint64_t length, const char fill) {
 
     //Set the end pointer to the last character of our stringF
 //    str->end = asptr(&str->data[length]);
-    _internal_fstr_set_end(str, length);
+    internal_fstr_set_end(str, length);
 }
 
 fstr *fstr_from_format_C(const char *format, ...) {
@@ -219,14 +233,20 @@ void fstr_append_format_C(fstr *str, const char *format, ...) {
     var addSize = _vscprintf(format, args) / sizeof(chr);
     var finalSize = startSize + addSize;
 
-    //Reallocate the data of the string to fit our newsize
+    //Reallocate the data of the string to fit our finalSize
     str->data = realloc(str->data, finalSize * sizeof(chr));
+
+    //Return an error if alloc fails
+    if (str->data == NULL) {
+        str->error = STR_ERR_ReallocFailed;
+        return;
+    }
 
     //Do our vsprintf to the data, offset by our start size as to write our data to our unneeded stuff
     vsprintf(str->data + startSize, format, args);
 
     //Set the end of our string
-    _internal_fstr_set_end(str, finalSize / sizeof(chr));
+    internal_fstr_set_end(str, finalSize / sizeof(chr));
 
     va_end(args);
 }
@@ -249,14 +269,14 @@ uint8_t fstr_equals(fstr *a, fstr *b) {
         return 0;
     }
 
-    var alen = fstr_length(a);
-    var blen = fstr_length(b);
+    var aLen = fstr_length(a);
+    var bLen = fstr_length(b);
 
-    if (alen != blen) {
+    if (aLen != bLen) {
         return 0;
     }
 
-    for (int i = 0; i < alen; i++) {
+    for (int i = 0; i < aLen; i++) {
         if (a->data[i] != b->data[i]) {
             return 0;
         }
@@ -270,7 +290,7 @@ uint8_t fstr_equals(fstr *a, fstr *b) {
 /// \param add
 /// \param index
 /// \param addLen
-void _internal_fstr_insert(fstr *str, const char *add, PTR_SIZE index, PTR_SIZE addLen) {
+void internal_fstr_insert(fstr *str, const char *add, PTR_SIZE index, PTR_SIZE addLen) {
 
     var startLen = fstr_length(str);
     var finalLen = startLen + addLen;
@@ -286,6 +306,13 @@ void _internal_fstr_insert(fstr *str, const char *add, PTR_SIZE index, PTR_SIZE 
 
     str->data = realloc(str->data, finalLen * sizeof(chr));
 
+    //Return an error if realloc fails
+    if (str->data == NULL) {
+        str->error = STR_ERR_ReallocFailed;
+        return;
+    }
+
+
     //[A][B][C][D][E][F] <-(2) [Z][X][Y]
 
     //Shift the first part of the buffer over
@@ -298,7 +325,7 @@ void _internal_fstr_insert(fstr *str, const char *add, PTR_SIZE index, PTR_SIZE 
     memcpy(str->data + index, add, addLen * sizeof(chr));
     //[A][B][Z][X][Y][C][D][E][F]
 
-    _internal_fstr_set_end(str, finalLen);
+    internal_fstr_set_end(str, finalLen);
 }
 
 void fstr_insert(fstr *str, const fstr *add, uint64_t index) {
@@ -308,7 +335,7 @@ void fstr_insert(fstr *str, const fstr *add, uint64_t index) {
         return;
     }
 
-    _internal_fstr_insert(str, add->data, index, asptr(fstr_length(add)));
+    internal_fstr_insert(str, add->data, index, asptr(fstr_length(add)));
 }
 
 void fstr_insert_c(fstr *str, const char *add, uint64_t index) {
@@ -317,7 +344,7 @@ void fstr_insert_c(fstr *str, const char *add, uint64_t index) {
         return;
     }
 
-    _internal_fstr_insert(str, add, index, asptr(_internal_C_string_length(add)));
+    internal_fstr_insert(str, add, index, asptr(internal_C_string_length(add)));
 }
 
 void fstr_pad(fstr *str, uint64_t targetLength, char pad, int8_t side) {
