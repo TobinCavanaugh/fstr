@@ -38,11 +38,17 @@ llu internal_C_string_length(const char *buf) {
 //    var slen = fstr_length(source);
 //}
 
-fstr *fstr_substr(fstr *str, int min, int max) {
+fstr *fstr_substrlen(fstr *str, int start, int length) {
+    fstr *sub = fstr_from_length(length, '!');
 
+    memcpy(sub->data, str->data + start * sizeof(chr), length * sizeof(chr));
+
+    internal_fstr_set_end(sub, length * sizeof(chr));
+
+    return sub;
 }
 
-void fstr_replace_chr_at(fstr *str, uint64_t index, char c) {
+void fstr_replace_chr_at(fstr *str, uint64_t index, chr c) {
     uint64_t len = fstr_length(str);
     if (index >= len) {
         str->error = STR_ERR_IndexOutOfBounds;
@@ -50,6 +56,16 @@ void fstr_replace_chr_at(fstr *str, uint64_t index, char c) {
     }
 
     str->data[index] = c;
+}
+
+
+fstr *fstr_from_wc(const wchar_t *buf) {
+    llu bufSize = wcslen(buf) * sizeof(wchar_t);
+    fstr *str = malloc(sizeof(fstr));
+    str->data = malloc(bufSize);
+    str->error = STR_ERR_None;
+    memcpy(str->data, buf, bufSize);
+    internal_fstr_set_end(str, bufSize);
 }
 
 fstr *fstr_from_C(const char *buf) {
@@ -96,14 +112,37 @@ void fstr_free(fstr *str) {
 
 void fstr_print_slow(const fstr *str) {
     int i;
-    for (i = 0; i < fstr_length(str); i++) {
+    u64 len = fstr_length(str);
+    for (i = 0; i < len; i++) {
         printf("%c", str->data[i]);
+    }
+}
+
+
+void fstr_print_slow_f(const fstr *str, const chr *format) {
+    int i;
+    u64 len = fstr_length(str);
+    for (i = 0; i < len; i++) {
+        if (sizeof(chr) == sizeof(wchar_t)) {
+            wprintf(format, str->data[i]);
+        } else {
+            printf(format, str->data[i]);
+        }
     }
 }
 
 void fstr_print(const fstr *str) {
     u64 len = fstr_length(str);
     write(STDOUT_FILENO, str->data, len);
+}
+
+
+void fstr_print_hex(const fstr *str) {
+    u64 len = fstr_length(str);
+    int i;
+    for (i = 0; i < len; i++) {
+        printf("0x%x ", str->data[i]);
+    }
 }
 
 char *fstr_as_C_heap(const fstr *from) {
@@ -178,7 +217,7 @@ void fstr_append_C(fstr *str, const char *buf) {
     internal_fstr_set_end(str, newLen);
 }
 
-fstr *fstr_from_length(uint64_t length, const char fill) {
+fstr *fstr_from_length(uint64_t length, const chr fill) {
 
     //Error check
     if (length <= 0) {

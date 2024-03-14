@@ -48,6 +48,10 @@ typedef struct {
 
 #pragma endregion Definitions
 
+
+fstr *fstr_substrlen(fstr *str, int start, int length);
+
+
 /////////////////////////////
 /// FUNCTION DECLARATIONS ///
 /////////////////////////////
@@ -69,7 +73,7 @@ fstr *fstr_from_format_C(const char *format, ...);
 /// \param length Total length of the string
 /// \param fill The fill character
 /// \return
-fstr *fstr_from_length(uint64_t length, chr fill);
+fstr *fstr_from_length(uint64_t length, const chr fill);
 
 #pragma endregion String_Creation
 
@@ -120,7 +124,10 @@ void fstr_pad(fstr *str, PTR_SIZE targetLength, char pad, int8_t side);
 /// \param to
 void fstr_replace_chr(fstr *str, chr from, chr to);
 
+fstr *fstr_from_wc(const wchar_t *buf);
 void fstr_replace_chr_at(fstr *str, PTR_SIZE index, chr c);
+void fstr_print_hex(const fstr *str);
+void fstr_print_slow_f(const fstr *str, const chr *format);
 
 #pragma endregion String_Modification
 

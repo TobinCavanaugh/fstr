@@ -2,7 +2,7 @@
 #include <time.h>
 #include <sys/time.h>
 #include <stdio.h>
-#include <unistd.h>
+#include <locale.h>
 #include "fstr.h"
 
 #define var __auto_type
@@ -26,29 +26,14 @@ double stop_stopwatch(struct timeval start_time) {
 }
 
 int main() {
-    var str = fstr_from_C("1234567890_");
 
-    int ITERATIONS = 1000;
+    var str = fstr_from_C("Fancy Text");
 
-    var tv = start_stopwatch();
-    int i;
-    for (i = 0; i < ITERATIONS; i++) {
-        fstr_print_slow(str);
-    }
-    var slowPrint = stop_stopwatch(tv);
+    fstr_append_C(str, ":)");
 
-    printf("\n------------\n");
+    fstr_print(str);
 
-    tv = start_stopwatch();
-
-    int j;
-    for (j = 0; j < ITERATIONS; j++) {
-        fstr_print(str);
-    }
-
-    var fastPrint = stop_stopwatch(tv);
-
-    printf("\n------\nSlow Print: %fms\nFast Print: %fms", slowPrint, fastPrint);
+    while(1){}
 
     return 0;
 }
