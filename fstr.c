@@ -93,7 +93,8 @@ void fstr_free(fstr *str) {
 }
 
 void fstr_print_slow(const fstr *str) {
-    for (int i = 0; i < fstr_length(str); i++) {
+    int i;
+    for (i = 0; i < fstr_length(str); i++) {
         printf("%c", str->data[i]);
     }
 }
@@ -257,7 +258,8 @@ void fstr_replace_chr(fstr *str, chr from, chr to) {
 
     u64 len = fstr_length(str);
 
-    for (int i = 0; i < len; i++) {
+    int i;
+    for (i = 0; i < len; i++) {
         if (str->data[i] == from) {
             str->data[i] = to;
         }
@@ -278,7 +280,8 @@ uint8_t fstr_equals(fstr *a, fstr *b) {
         return 0;
     }
 
-    for (int i = 0; i < aLen; i++) {
+    int i;
+    for (i = 0; i < aLen; i++) {
         if (a->data[i] != b->data[i]) {
             return 0;
         }

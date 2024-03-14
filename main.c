@@ -31,7 +31,8 @@ int main() {
     int ITERATIONS = 1000;
 
     var tv = start_stopwatch();
-    for (int i = 0; i < ITERATIONS; i++) {
+    int i;
+    for (i = 0; i < ITERATIONS; i++) {
         fstr_print_slow(str);
     }
     var slowPrint = stop_stopwatch(tv);
@@ -40,7 +41,8 @@ int main() {
 
     tv = start_stopwatch();
 
-    for (int i = 0; i < ITERATIONS; i++) {
+    int j;
+    for (j = 0; j < ITERATIONS; j++) {
         fstr_print(str);
     }
 
