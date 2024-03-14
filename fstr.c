@@ -9,8 +9,10 @@
 #include <stdarg.h>
 #include <unistd.h>
 
-#define var __auto_type
 #define asptr(a) ((PTR_SIZE) (a))
+
+#define u64 uint64_t
+#define llu unsigned long long
 
 /// Sets the end pointer of the fstr
 /// \param str
@@ -22,7 +24,7 @@ void internal_fstr_set_end(fstr *str, PTR_SIZE newLength) {
 /// Custom String Length function
 /// \param buf The string to check
 /// \return The length of the string, NOT including the null terminator
-unsigned long long internal_C_string_length(const char *buf) {
+llu internal_C_string_length(const char *buf) {
     int i = 0;
     while (buf[i] != '\0') {
         i++;
@@ -41,7 +43,7 @@ void fstr_substr(fstr *str, int min, int max) {
 }
 
 void fstr_replace_chr_at(fstr *str, uint64_t index, char c) {
-    var len = fstr_length(str);
+    uint64_t len = fstr_length(str);
     if (index >= len) {
         str->error = STR_ERR_IndexOutOfBounds;
         return;
@@ -53,7 +55,7 @@ void fstr_replace_chr_at(fstr *str, uint64_t index, char c) {
 fstr *fstr_from_C(const char *buf) {
 
     //Calculate the size of our buffer
-    var bufSize = internal_C_string_length(buf) * sizeof(chr);
+    llu bufSize = internal_C_string_length(buf) * sizeof(chr);
 
     //Malloc our struct
     fstr *str = malloc(sizeof(fstr));
@@ -75,7 +77,7 @@ fstr *fstr_from_C(const char *buf) {
 
 PTR_SIZE fstr_length(const fstr *str) {
 
-    var diff = asptr(str->end) - asptr(str->data);
+    uint64_t diff = asptr(str->end) - asptr(str->data);
     return diff;
 }
 
@@ -97,13 +99,13 @@ void fstr_print_slow(const fstr *str) {
 }
 
 void fstr_print(const fstr *str) {
-    var len = fstr_length(str);
+    u64 len = fstr_length(str);
     write(STDOUT_FILENO, str->data, len);
 }
 
 char *fstr_as_C_heap(const fstr *from) {
     //Get the length of our from string
-    var len = fstr_length(from);
+    u64 len = fstr_length(from);
 
     //Allocate our new memory, plus one on length for the null terminator
     char *toStr = calloc(len + 1, sizeof(char));
@@ -125,9 +127,9 @@ void fstr_append(fstr *str, const fstr *buf) {
     }
 
     //Get / calculate the lengths that will be involved
-    var startLength = fstr_length(str);
-    var bufLength = fstr_length(buf);
-    var newLength = startLength + bufLength;
+    u64 startLength = fstr_length(str);
+    u64 bufLength = fstr_length(buf);
+    u64 newLength = startLength + bufLength;
 
     //Reallocate our string data to include room for our new buf
     str->data = realloc(str->data, newLength * sizeof(chr));
@@ -153,9 +155,9 @@ void fstr_append_C(fstr *str, const char *buf) {
     }
 
     //Calculate lengths
-    var startLen = fstr_length(str);
-    var bufLen = internal_C_string_length(buf);
-    var newLen = startLen + bufLen;
+    u64 startLen = fstr_length(str);
+    llu bufLen = internal_C_string_length(buf);
+    llu newLen = startLen + bufLen;
 
     //Realloc the string
     str->data = realloc(str->data, newLen * sizeof(chr));
@@ -181,7 +183,7 @@ fstr *fstr_from_length(uint64_t length, const char fill) {
     }
 
     //Create our string
-    var str = fstr_from_C("");
+    fstr *str = fstr_from_C("");
 
     //Malloc new string data with the correct size
     str->data = malloc(length * sizeof(chr));
@@ -208,7 +210,7 @@ fstr *fstr_from_format_C(const char *format, ...) {
 
     //Create the new string, we divide by sizeof chr in case chars are bigger
     //TODO This divide could be wrong
-    var str = fstr_from_length(size / sizeof(chr), '!');
+    fstr *str = fstr_from_length(size / sizeof(chr), '!');
 
     //Write the varargs to the string with the proper format
     vsprintf(str->data, format, args);
@@ -229,9 +231,9 @@ void fstr_append_format_C(fstr *str, const char *format, ...) {
     va_start(args, format);
 
     //Get the sizes
-    var startSize = fstr_length(str) * sizeof(chr);
-    var addSize = _vscprintf(format, args) / sizeof(chr);
-    var finalSize = startSize + addSize;
+    llu startSize = fstr_length(str) * sizeof(chr);
+    llu addSize = _vscprintf(format, args) / sizeof(chr);
+    llu finalSize = startSize + addSize;
 
     //Reallocate the data of the string to fit our finalSize
     str->data = realloc(str->data, finalSize * sizeof(chr));
@@ -253,7 +255,7 @@ void fstr_append_format_C(fstr *str, const char *format, ...) {
 
 void fstr_replace_chr(fstr *str, chr from, chr to) {
 
-    var len = fstr_length(str);
+    u64 len = fstr_length(str);
 
     for (int i = 0; i < len; i++) {
         if (str->data[i] == from) {
@@ -269,8 +271,8 @@ uint8_t fstr_equals(fstr *a, fstr *b) {
         return 0;
     }
 
-    var aLen = fstr_length(a);
-    var bLen = fstr_length(b);
+    u64 aLen = fstr_length(a);
+    u64 bLen = fstr_length(b);
 
     if (aLen != bLen) {
         return 0;
@@ -292,8 +294,8 @@ uint8_t fstr_equals(fstr *a, fstr *b) {
 /// \param addLen
 void internal_fstr_insert(fstr *str, const char *add, PTR_SIZE index, PTR_SIZE addLen) {
 
-    var startLen = fstr_length(str);
-    var finalLen = startLen + addLen;
+    u64 startLen = fstr_length(str);
+    u64 finalLen = startLen + addLen;
 
     if (addLen == 0) {
         return;
@@ -349,19 +351,19 @@ void fstr_insert_c(fstr *str, const char *add, uint64_t index) {
 
 void fstr_pad(fstr *str, uint64_t targetLength, char pad, int8_t side) {
 
-    var currentLen = fstr_length(str);
+    u64 currentLen = fstr_length(str);
 
     if (targetLength <= currentLen) {
         str->error = STR_ERR_IndexOutOfBounds;
         return;
     }
 
-    var diff = targetLength - currentLen;
+    u64 diff = targetLength - currentLen;
 
     ///Pad the left side
     if (side < 0) {
         //Pad the left side
-        var prePad = fstr_from_length(diff, pad);
+        fstr *prePad = fstr_from_length(diff, pad);
         fstr_insert(str, prePad, 0);
         free(prePad);
         return;
@@ -369,7 +371,7 @@ void fstr_pad(fstr *str, uint64_t targetLength, char pad, int8_t side) {
     ///Pad both sides
     if (side == 0) {
         //Insert the pad on the left
-        var left = fstr_from_length(diff / 2, pad);
+        fstr *left = fstr_from_length(diff / 2, pad);
         fstr_insert(str, left, 0);
 
         //Pad the remaining right side
@@ -382,9 +384,9 @@ void fstr_pad(fstr *str, uint64_t targetLength, char pad, int8_t side) {
     ///Pad the right side
     if (side > 0) {
         //Pad the right side
-        var prePad = fstr_from_length(diff, pad);
+        fstr *prePad = fstr_from_length(diff, pad);
 
-        var len = fstr_length(str);
+        u64 len = fstr_length(str);
         fstr_insert(str, prePad, len);
         free(prePad);
 
