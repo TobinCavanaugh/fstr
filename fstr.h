@@ -16,7 +16,8 @@
 #define FSTR_FSTR_H
 
 #define PTR_SIZE uint64_t
-#define chr char
+
+typedef wchar_t chr;
 
 
 /////////////////////////////
@@ -61,7 +62,7 @@ fstr *fstr_substrlen(fstr *str, int start, int length);
 /// Creates an fstr from a pre-existing C string
 /// \param buf
 /// \return
-fstr *fstr_from_C(const char *buf);
+fstr *fstr_from_C(const chr *buf);
 
 /// Creates a fstr from a C format string
 /// \param format Like printf
@@ -82,7 +83,7 @@ fstr *fstr_from_length(uint64_t length, const chr fill);
 /// Append a C style string to our str
 /// \param str The string being appended to
 /// \param buf The string to be added
-void fstr_append_C(fstr *str, const char *buf);
+void fstr_append_C(fstr *str, const chr *buf);
 
 /// Appends buf to strF
 /// \param str The string being appended to
@@ -125,9 +126,12 @@ void fstr_pad(fstr *str, PTR_SIZE targetLength, char pad, int8_t side);
 void fstr_replace_chr(fstr *str, chr from, chr to);
 
 fstr *fstr_from_wc(const wchar_t *buf);
+
 void fstr_replace_chr_at(fstr *str, PTR_SIZE index, chr c);
+
 void fstr_print_hex(const fstr *str);
-void fstr_print_slow_f(const fstr *str, const chr *format);
+
+void fstr_print_chrs_f(const fstr *str, const chr *format);
 
 #pragma endregion String_Modification
 
@@ -140,7 +144,7 @@ char *fstr_as_C_heap(const fstr *from);
 
 /// Prints the string one character at a time
 /// \param str The string to be printed
-void fstr_print_slow(const fstr *str);
+void fstr_print_chrs(const fstr *str);
 
 /// Prints the string at once by writing to the STDOUT
 /// \param str The string to be printed

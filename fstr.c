@@ -14,23 +14,31 @@
 #define u64 uint64_t
 #define llu unsigned long long
 
+#define USING_WCHAR (sizeof(chr) == sizeof(wchar_t))
+#define USING_CHAR (sizeof(chr) == sizeof(char))
+
 /// Sets the end pointer of the fstr
 /// \param str
 /// \param newLength
 void internal_fstr_set_end(fstr *str, PTR_SIZE newLength) {
+    //Set the end to the address last indexed character of the string
     str->end = asptr(&str->data[newLength]);
 }
 
 /// Custom String Length function
 /// \param buf The string to check
 /// \return The length of the string, NOT including the null terminator
-llu internal_C_string_length(const char *buf) {
-    int i = 0;
-    while (buf[i] != '\0') {
-        i++;
-    }
+llu internal_C_string_length(const chr *buf) {
+    if (USING_WCHAR) {
+        return wcslen(buf);
+    } else {
+        int i = 0;
+        while (buf[i] != '\0') {
+            i++;
+        }
 
-    return i;
+        return i;
+    }
 }
 
 
@@ -43,7 +51,7 @@ fstr *fstr_substrlen(fstr *str, int start, int length) {
 
     memcpy(sub->data, str->data + start * sizeof(chr), length * sizeof(chr));
 
-    internal_fstr_set_end(sub, length * sizeof(chr));
+    internal_fstr_set_end(sub, length);
 
     return sub;
 }
@@ -59,16 +67,16 @@ void fstr_replace_chr_at(fstr *str, uint64_t index, chr c) {
 }
 
 
-fstr *fstr_from_wc(const wchar_t *buf) {
-    llu bufSize = wcslen(buf) * sizeof(wchar_t);
-    fstr *str = malloc(sizeof(fstr));
-    str->data = malloc(bufSize);
-    str->error = STR_ERR_None;
-    memcpy(str->data, buf, bufSize);
-    internal_fstr_set_end(str, bufSize);
-}
+//fstr *fstr_from_wc(const wchar_t *buf) {
+//    llu bufSize = wcslen(buf) * sizeof(wchar_t);
+//    fstr *str = malloc(sizeof(fstr));
+//    str->data = malloc(bufSize);
+//    str->error = STR_ERR_None;
+//    memcpy(str->data, buf, bufSize);
+//    internal_fstr_set_end(str, bufSize);
+//}
 
-fstr *fstr_from_C(const char *buf) {
+fstr *fstr_from_C(const chr *buf) {
 
     //Calculate the size of our buffer
     llu bufSize = internal_C_string_length(buf) * sizeof(chr);
@@ -92,7 +100,7 @@ fstr *fstr_from_C(const char *buf) {
 }
 
 PTR_SIZE fstr_length(const fstr *str) {
-    uint64_t diff = asptr(str->end) - asptr(str->data);
+    uint64_t diff = (asptr(str->end) - asptr(str->data)) / sizeof(chr);
     return diff;
 }
 
@@ -110,32 +118,41 @@ void fstr_free(fstr *str) {
     free(str);
 }
 
-void fstr_print_slow(const fstr *str) {
-    int i;
-    u64 len = fstr_length(str);
-    for (i = 0; i < len; i++) {
-        printf("%c", str->data[i]);
+void internal_print_chr(const chr *format, const chr print) {
+    if (USING_WCHAR) {
+        wprintf(format, print);
+    } else if (USING_CHAR) {
+        printf(format, print);
     }
 }
 
-
-void fstr_print_slow_f(const fstr *str, const chr *format) {
-    int i;
-    u64 len = fstr_length(str);
-    for (i = 0; i < len; i++) {
-        if (sizeof(chr) == sizeof(wchar_t)) {
-            wprintf(format, str->data[i]);
-        } else {
-            printf(format, str->data[i]);
+void fstr_print_chrs(const fstr *str) {
+    if (USING_CHAR) {
+        int i;
+        u64 len = fstr_length(str);
+        for (i = 0; i < len; i++) {
+            internal_print_chr("%c", str->data[i]);
         }
     }
 }
 
-void fstr_print(const fstr *str) {
+
+void fstr_print_chrs_f(const fstr *str, const chr *format) {
+    int i;
     u64 len = fstr_length(str);
-    write(STDOUT_FILENO, str->data, len);
+    for (i = 0; i < len; i++) {
+        internal_print_chr(format, str->data[i]);
+    }
 }
 
+void fstr_print(const fstr *str) {
+    if (USING_CHAR) {
+        u64 len = fstr_length(str);
+        write(STDOUT_FILENO, str->data, len);
+    } else if (USING_WCHAR) {
+        wprintf(L"%ls", str->data);
+    }
+}
 
 void fstr_print_hex(const fstr *str) {
     u64 len = fstr_length(str);
@@ -173,6 +190,10 @@ void fstr_append(fstr *str, const fstr *buf) {
     u64 bufLength = fstr_length(buf);
     u64 newLength = startLength + bufLength;
 
+    if (newLength == 0) {
+        return;
+    }
+
     //Reallocate our string data to include room for our new buf
     str->data = realloc(str->data, newLength * sizeof(chr));
 
@@ -189,7 +210,7 @@ void fstr_append(fstr *str, const fstr *buf) {
     internal_fstr_set_end(str, newLength);
 }
 
-void fstr_append_C(fstr *str, const char *buf) {
+void fstr_append_C(fstr *str, const chr *buf) {
 
     if (buf == NULL) {
         str->error = STR_ERR_NullStringArg;
@@ -211,7 +232,7 @@ void fstr_append_C(fstr *str, const char *buf) {
     }
 
     //Copy the string memory in
-    memcpy(str->data + startLen * sizeof(chr), buf, bufLen * sizeof(chr));
+    memcpy(str->data + startLen, buf, bufLen * sizeof(chr));
 
     //Recalculate the end
     internal_fstr_set_end(str, newLen);

@@ -27,13 +27,25 @@ double stop_stopwatch(struct timeval start_time) {
 
 int main() {
 
-    var str = fstr_from_C("Fancy Text");
-
-    fstr_append_C(str, ":)");
+    var str = fstr_from_C(L"0123456789");
 
     fstr_print(str);
+    printf("\n---\n");
 
-    while(1){}
+    fstr_append_C(str, L"\t");
+    fstr_append_C(str, L":)");
+
+    printf("~~~\n");
+
+
+//    fstr_append_C(str, ":)");
+    fstr_print(str);
+
+    var heap = fstr_as_C_heap(str);
+    printf("\n%s", heap);
+
+//    fstr_append_C(str, L":)");
+
 
     return 0;
 }
