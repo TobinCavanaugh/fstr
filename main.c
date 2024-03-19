@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <locale.h>
 #include "fstr.h"
+#include "fstr_parse.h"
 
 #define var __auto_type
 
@@ -27,25 +28,25 @@ double stop_stopwatch(struct timeval start_time) {
 
 int main() {
 
-    var str = fstr_from_C(L"0123456789");
+    var intStr = fstr_from_C("-1234");
 
-    fstr_print(str);
-    printf("\n---\n");
+    long res = 0;
+    if(!fstr_try_to_long(intStr, &res)){
+        printf("failed :(\n");
+    }
 
-    fstr_append_C(str, L"\t");
-    fstr_append_C(str, L":)");
-
-    printf("~~~\n");
+    printf("%ld", res);
 
 
-//    fstr_append_C(str, ":)");
-    fstr_print(str);
+    return 0;
+    var str = fstr_from_C("011111111111111101");
 
-    var heap = fstr_as_C_heap(str);
-    printf("\n%s", heap);
+    var other = fstr_copy(str);
 
-//    fstr_append_C(str, L":)");
+    fstr_remove_chr(other, '1');
 
+    fstr_println(str);
+    fstr_println(other);
 
     return 0;
 }

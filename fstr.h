@@ -15,9 +15,9 @@
 #ifndef FSTR_FSTR_H
 #define FSTR_FSTR_H
 
-#define PTR_SIZE uint64_t
+#define PTR_SIZE size_t
 
-typedef wchar_t chr;
+typedef char chr;
 
 
 /////////////////////////////
@@ -50,7 +50,7 @@ typedef struct {
 #pragma endregion Definitions
 
 
-fstr *fstr_substrlen(fstr *str, int start, int length);
+fstr *fstr_substrlen(fstr *str, int start, PTR_SIZE length);
 
 
 /////////////////////////////
@@ -100,7 +100,7 @@ void fstr_insert(fstr *str, const fstr *add, PTR_SIZE index);
 /// \param str The string to be modified
 /// \param add The C string to be added
 /// \param index 0 inserts the string before any other data
-void fstr_insert_c(fstr *str, const char *add, PTR_SIZE index);
+void fstr_insert_c(fstr *str, const chr *add, PTR_SIZE index);
 
 /// Appends a formatted C string to the fstr
 /// \param str The string to be appended to
@@ -113,7 +113,7 @@ void fstr_append_format_C(fstr *str, const char *format, ...);
 /// \param targetLength uint64_t width of max pad
 /// \param pad The character to pad
 /// \param side -1 for pad left, 0 for pad both, 1 for pad right
-void fstr_pad(fstr *str, PTR_SIZE targetLength, char pad, int8_t side);
+void fstr_pad(fstr *str, PTR_SIZE targetLength, chr pad, int8_t side);
 
 #pragma endregion String_Append
 
@@ -123,13 +123,16 @@ void fstr_pad(fstr *str, PTR_SIZE targetLength, char pad, int8_t side);
 /// \param str
 /// \param from
 /// \param to
-void fstr_replace_chr(fstr *str, chr from, chr to);
+void fstr_replace_chr(fstr *str, const chr from, const chr to);
 
-fstr *fstr_from_wc(const wchar_t *buf);
-
+void fstr_remove_chr(fstr *str, const chr from);
 void fstr_replace_chr_at(fstr *str, PTR_SIZE index, chr c);
 
+fstr *fstr_copy(const fstr *str);
+
 void fstr_print_hex(const fstr *str);
+
+void fstr_println(const fstr *str);
 
 void fstr_print_chrs_f(const fstr *str, const chr *format);
 

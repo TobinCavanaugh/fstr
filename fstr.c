@@ -42,14 +42,60 @@ llu internal_C_string_length(const chr *buf) {
 }
 
 
+fstr *fstr_copy(const fstr *str) {
+    PTR_SIZE len = fstr_length(str);
+    fstr *new = fstr_from_length(len, '!');
+    memcpy(new->data, str->data, len * sizeof(chr));
+    return new;
+}
+
+
+void fstr_replace_chr(fstr *str, const chr from, const chr to) {
+    PTR_SIZE len = fstr_length(str);
+
+    int cx = 0;
+
+    int i = 0;
+    for (i = 0; i < len; i++) {
+        if (str->data[i] == from) {
+            str->data[i] = to;
+        }
+    }
+}
+
+void internal_remove_buf(fstr *str, char *buf, PTR_SIZE len) {
+
+}
+
+
+void fstr_remove_chr(fstr *str, const chr from) {
+    fstr *copy = fstr_copy(str);
+    PTR_SIZE len = fstr_length(copy);
+
+    //TODO This can be done without allocations on a singular buffer. I'm too foggy to do that rn
+    PTR_SIZE secondary = 0;
+    PTR_SIZE primary;
+    for (primary = 0; primary < len; primary++) {
+        if (copy->data[primary] != from) {
+            str->data[secondary] = copy->data[primary];
+            secondary++;
+        }
+    }
+
+    internal_fstr_set_end(str, secondary);
+
+    fstr_free(copy);
+}
+
+
 //void fstr_copy(fstr *destination, fstr *source) {
 //    var slen = fstr_length(source);
 //}
 
-fstr *fstr_substrlen(fstr *str, int start, int length) {
+fstr *fstr_substrlen(fstr *str, int start, PTR_SIZE length) {
     fstr *sub = fstr_from_length(length, '!');
 
-    memcpy(sub->data, str->data + start * sizeof(chr), length * sizeof(chr));
+    memcpy(sub->data, str->data + start, length * sizeof(chr));
 
     internal_fstr_set_end(sub, length);
 
@@ -65,16 +111,6 @@ void fstr_replace_chr_at(fstr *str, uint64_t index, chr c) {
 
     str->data[index] = c;
 }
-
-
-//fstr *fstr_from_wc(const wchar_t *buf) {
-//    llu bufSize = wcslen(buf) * sizeof(wchar_t);
-//    fstr *str = malloc(sizeof(fstr));
-//    str->data = malloc(bufSize);
-//    str->error = STR_ERR_None;
-//    memcpy(str->data, buf, bufSize);
-//    internal_fstr_set_end(str, bufSize);
-//}
 
 fstr *fstr_from_C(const chr *buf) {
 
@@ -152,6 +188,12 @@ void fstr_print(const fstr *str) {
     } else if (USING_WCHAR) {
         wprintf(L"%ls", str->data);
     }
+}
+
+
+void fstr_println(const fstr *str) {
+    fstr_print(str);
+    printf("\n");
 }
 
 void fstr_print_hex(const fstr *str) {
@@ -318,17 +360,17 @@ void fstr_append_format_C(fstr *str, const char *format, ...) {
     va_end(args);
 }
 
-void fstr_replace_chr(fstr *str, chr from, chr to) {
-
-    u64 len = fstr_length(str);
-
-    int i;
-    for (i = 0; i < len; i++) {
-        if (str->data[i] == from) {
-            str->data[i] = to;
-        }
-    }
-}
+//void fstr_replace_chr(fstr *str, chr from, chr to) {
+//
+//    u64 len = fstr_length(str);
+//
+//    int i;
+//    for (i = 0; i < len; i++) {
+//        if (str->data[i] == from) {
+//            str->data[i] = to;
+//        }
+//    }
+//}
 
 uint8_t fstr_equals(fstr *a, fstr *b) {
 
@@ -387,7 +429,7 @@ void internal_fstr_insert(fstr *str, const char *add, PTR_SIZE index, PTR_SIZE a
     //Shift the first part of the buffer over
 
     //[A][B][C][D][E][F][-][-][-]
-    memcpy(str->data + (index + addLen) * sizeof(chr), str->data + index, (startLen - index) * sizeof(chr));
+    memcpy(str->data + (index + addLen), str->data + index, (startLen - index) * sizeof(chr));
     //[A][B][-][-][-][C][D][E][F]
 
     //[A][B][-][-][-][C][D][E][F]
@@ -407,7 +449,7 @@ void fstr_insert(fstr *str, const fstr *add, uint64_t index) {
     internal_fstr_insert(str, add->data, index, asptr(fstr_length(add)));
 }
 
-void fstr_insert_c(fstr *str, const char *add, uint64_t index) {
+void fstr_insert_c(fstr *str, const chr *add, uint64_t index) {
     if (add == NULL) {
         str->error = STR_ERR_NullStringArg;
         return;
@@ -416,7 +458,7 @@ void fstr_insert_c(fstr *str, const char *add, uint64_t index) {
     internal_fstr_insert(str, add, index, asptr(internal_C_string_length(add)));
 }
 
-void fstr_pad(fstr *str, uint64_t targetLength, char pad, int8_t side) {
+void fstr_pad(fstr *str, uint64_t targetLength, chr pad, int8_t side) {
 
     u64 currentLen = fstr_length(str);
 
