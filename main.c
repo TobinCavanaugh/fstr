@@ -28,10 +28,11 @@ double stop_stopwatch(struct timeval start_time) {
 
 int main() {
 
+    /*
     var intStr = fstr_from_C("-1234");
 
     long res = 0;
-    if(!fstr_try_to_long(intStr, &res)){
+    if (!fstr_try_to_long(intStr, &res)) {
         printf("failed :(\n");
     }
 
@@ -39,11 +40,14 @@ int main() {
 
 
     return 0;
-    var str = fstr_from_C("011111111111111101");
+
+     */
+
+    var str = fstr_from_C("010101010101010--2");
 
     var other = fstr_copy(str);
 
-    fstr_remove_chr(other, '1');
+    fstr_remove_chr_varargs(other, 3, '1', '0', '-');
 
     fstr_println(str);
     fstr_println(other);

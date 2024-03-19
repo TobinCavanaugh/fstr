@@ -17,6 +17,11 @@
 #define USING_WCHAR (sizeof(chr) == sizeof(wchar_t))
 #define USING_CHAR (sizeof(chr) == sizeof(char))
 
+PTR_SIZE fstr_length(const fstr *str) {
+    uint64_t diff = (asptr(str->end) - asptr(str->data)) / sizeof(chr);
+    return diff;
+}
+
 /// Sets the end pointer of the fstr
 /// \param str
 /// \param newLength
@@ -32,7 +37,7 @@ llu internal_C_string_length(const chr *buf) {
     if (USING_WCHAR) {
         return wcslen(buf);
     } else {
-        int i = 0;
+        PTR_SIZE i = 0;
         while (buf[i] != '\0') {
             i++;
         }
@@ -55,7 +60,7 @@ void fstr_replace_chr(fstr *str, const chr from, const chr to) {
 
     int cx = 0;
 
-    int i = 0;
+    PTR_SIZE i = 0;
     for (i = 0; i < len; i++) {
         if (str->data[i] == from) {
             str->data[i] = to;
@@ -63,28 +68,60 @@ void fstr_replace_chr(fstr *str, const chr from, const chr to) {
     }
 }
 
-void internal_remove_buf(fstr *str, char *buf, PTR_SIZE len) {
+void internal_remove_buf(fstr *str, char *buf, PTR_SIZE removeLen) {
+    PTR_SIZE len = fstr_length(str);
+    PTR_SIZE i;
+    for (i = 0; i < len; i++){
 
+    }
 }
 
 
-void fstr_remove_chr(fstr *str, const chr from) {
-    fstr *copy = fstr_copy(str);
-    PTR_SIZE len = fstr_length(copy);
+void fstr_remove_chr_varargs(fstr *str, int num_chars, ...) {
+    va_list args;
 
-    //TODO This can be done without allocations on a singular buffer. I'm too foggy to do that rn
+    va_start(args, num_chars);
+
+    PTR_SIZE i;
+    for (i = 0; i < num_chars; i++) {
+        fstr_remove_chr(str, (chr) va_arg(args, int));
+    }
+
+    va_end(args);
+}
+
+void fstr_remove_chr(fstr *str, const chr from) {
+    PTR_SIZE len = fstr_length(str);
     PTR_SIZE secondary = 0;
     PTR_SIZE primary;
+
+    //Iterate our string and place our non from strings into our same string in order
     for (primary = 0; primary < len; primary++) {
-        if (copy->data[primary] != from) {
-            str->data[secondary] = copy->data[primary];
+        if (str->data[primary] != from) {
+            str->data[secondary] = str->data[primary];
             secondary++;
         }
     }
 
+    str->data = realloc(str->data, secondary * sizeof(chr));
+
     internal_fstr_set_end(str, secondary);
 
-    fstr_free(copy);
+//    fstr_free(copy);
+}
+
+
+PTR_SIZE fstr_count_chr(const fstr *str, const chr value) {
+    PTR_SIZE len = fstr_length(str);
+
+    PTR_SIZE count = 0;
+    PTR_SIZE i;
+    for (i = 0; i < len; i++) {
+        if (str->data[i] == value) {
+            count++;
+        }
+    }
+    return count;
 }
 
 
@@ -135,10 +172,6 @@ fstr *fstr_from_C(const chr *buf) {
     return str;
 }
 
-PTR_SIZE fstr_length(const fstr *str) {
-    uint64_t diff = (asptr(str->end) - asptr(str->data)) / sizeof(chr);
-    return diff;
-}
 
 uint8_t internal_validate_fstr(fstr *str) {
     if (asptr(str->data) > str->end) {
@@ -164,7 +197,7 @@ void internal_print_chr(const chr *format, const chr print) {
 
 void fstr_print_chrs(const fstr *str) {
     if (USING_CHAR) {
-        int i;
+        PTR_SIZE i;
         u64 len = fstr_length(str);
         for (i = 0; i < len; i++) {
             internal_print_chr("%c", str->data[i]);
@@ -174,7 +207,7 @@ void fstr_print_chrs(const fstr *str) {
 
 
 void fstr_print_chrs_f(const fstr *str, const chr *format) {
-    int i;
+    PTR_SIZE i;
     u64 len = fstr_length(str);
     for (i = 0; i < len; i++) {
         internal_print_chr(format, str->data[i]);
@@ -198,7 +231,7 @@ void fstr_println(const fstr *str) {
 
 void fstr_print_hex(const fstr *str) {
     u64 len = fstr_length(str);
-    int i;
+    PTR_SIZE i;
     for (i = 0; i < len; i++) {
         printf("0x%x ", str->data[i]);
     }
@@ -386,7 +419,7 @@ uint8_t fstr_equals(fstr *a, fstr *b) {
         return 0;
     }
 
-    int i;
+    PTR_SIZE i;
     for (i = 0; i < aLen; i++) {
         if (a->data[i] != b->data[i]) {
             return 0;

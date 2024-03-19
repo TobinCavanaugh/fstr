@@ -20,7 +20,7 @@ bool is_char(chr c) {
     }
 }
 
-bool is_num(chr c) {
+bool is_digit(chr c) {
     if (USING_CHAR) {
 
     }

@@ -125,20 +125,38 @@ void fstr_pad(fstr *str, PTR_SIZE targetLength, chr pad, int8_t side);
 /// \param to
 void fstr_replace_chr(fstr *str, const chr from, const chr to);
 
+/// Removes any instances of a character, rippling the string. fstr_remove_chr(str, "AABBCC", 'A') -> "BBCC"
+/// \param str The string to be removed from
+/// \param from The chr to be removed
 void fstr_remove_chr(fstr *str, const chr from);
+
+/// Replaces the character at a particular index, you can also do direct indexing. Does do OOB checking.
+/// \param str The string to index
+/// \param index The index of the character, 0 being the start of the string
+/// \param c The character to be assigned
 void fstr_replace_chr_at(fstr *str, PTR_SIZE index, chr c);
 
-fstr *fstr_copy(const fstr *str);
 
-void fstr_print_hex(const fstr *str);
-
-void fstr_println(const fstr *str);
-
-void fstr_print_chrs_f(const fstr *str, const chr *format);
+/// Removes a
+/// \param str
+/// \param num_chars
+/// \param ...
+void fstr_remove_chr_varargs(fstr *str, int num_chars, ...);
 
 #pragma endregion String_Modification
 
 #pragma region String_Utilities
+
+/// Gets the count of the chr value in the fstr
+/// \param str The string to be checked
+/// \param value The chr to check the string for
+/// \return The count of characters
+PTR_SIZE fstr_count_chr(const fstr *str, const chr value);
+
+/// Copies the fstr and returns the new copy
+/// \param str The string to be copied
+/// \return A copy of the fstr
+fstr *fstr_copy(const fstr *str);
 
 /// Returns the fstr as a C string. This string MUST later be freed.
 /// \param from The string to be used
@@ -172,6 +190,20 @@ uint8_t fstr_succeeded(fstr *str);
 /// \param b The second string
 /// \return 1 if it equals, 0 if its not equal
 uint8_t fstr_equals(fstr *a, fstr *b);
+
+/// Prints the characters as hex codes separated by spaces
+/// \param str The string to be printed
+void fstr_print_hex(const fstr *str);
+
+/// Prints the string then a newline
+/// \param str The string to be printed
+void fstr_println(const fstr *str);
+
+/// Prints the chrs with a format applied to each character. This MUST include %c and cannot include any other % formatting.
+/// A good use for this is fstr_print_chrs_f(str, "%d,"); To comma separate the characters.
+/// \param str
+/// \param format
+void fstr_print_chrs_f(const fstr *str, const chr *format);
 
 #pragma endregion String_Utilities
 
