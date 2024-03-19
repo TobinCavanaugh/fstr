@@ -3,6 +3,8 @@
 #include <sys/time.h>
 #include <stdio.h>
 #include <locale.h>
+#include <string.h>
+#include <ctype.h>
 #include "fstr.h"
 #include "fstr_parse.h"
 
@@ -28,29 +30,28 @@ double stop_stopwatch(struct timeval start_time) {
 
 int main() {
 
-    /*
-    var intStr = fstr_from_C("-1234");
-
-    long res = 0;
-    if (!fstr_try_to_long(intStr, &res)) {
-        printf("failed :(\n");
+    int c;
+    for (c = 0; c <= 255; c++) {
+        printf("%c | _%c | ^%c\n", c, chr_to_lower(c), chr_to_upper(c));
     }
-
-    printf("%ld", res);
-
 
     return 0;
 
-     */
+    int v;
+    for (v = 0; v <= 255; v++) {
+        char c = (char) v;
+        printf("%c > _%c & ^%c\n", c, chr_to_lower(c), chr_to_upper(c));
+    }
 
-    var str = fstr_from_C("010101010101010--2");
+//    var str = fstr_from_C("~~~~____~~~~");
+//
+//    var other = fstr_copy(str);
+//
+//    fstr_remove_C(other, "~~~~");
+//    fstr_remove_chr_varargs(other, 3, '.', '-', ' ');
 
-    var other = fstr_copy(str);
-
-    fstr_remove_chr_varargs(other, 3, '1', '0', '-');
-
-    fstr_println(str);
-    fstr_println(other);
-
+//    fstr_println(str);
+//    fstr_println(other);
+//
     return 0;
 }

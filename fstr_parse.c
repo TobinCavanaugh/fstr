@@ -8,8 +8,8 @@
 #include "fstr_parse.h"
 
 //Also in fstr.h
-#define USING_WCHAR (sizeof(chr) == sizeof(wchar_t))
-#define USING_CHAR (sizeof(chr) == sizeof(char))
+//#define USING_WCHAR (sizeof(chr) == sizeof(wchar_t))
+//#define USING_CHAR (sizeof(chr) == sizeof(char))
 
 
 bool is_char(chr c) {

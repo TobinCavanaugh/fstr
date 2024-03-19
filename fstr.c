@@ -8,17 +8,17 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <unistd.h>
+#include <wchar.h>
 
-#define asptr(a) ((PTR_SIZE) (a))
+#define as_ptr(a) ((PTR_SIZE) (a))
 
 #define u64 uint64_t
+#define u8 uint8_t
 #define llu unsigned long long
 
-#define USING_WCHAR (sizeof(chr) == sizeof(wchar_t))
-#define USING_CHAR (sizeof(chr) == sizeof(char))
 
 PTR_SIZE fstr_length(const fstr *str) {
-    uint64_t diff = (asptr(str->end) - asptr(str->data)) / sizeof(chr);
+    uint64_t diff = (as_ptr(str->end) - as_ptr(str->data)) / sizeof(chr);
     return diff;
 }
 
@@ -27,7 +27,7 @@ PTR_SIZE fstr_length(const fstr *str) {
 /// \param newLength
 void internal_fstr_set_end(fstr *str, PTR_SIZE newLength) {
     //Set the end to the address last indexed character of the string
-    str->end = asptr(&str->data[newLength]);
+    str->end = as_ptr(&str->data[newLength]);
 }
 
 /// Custom String Length function
@@ -58,9 +58,7 @@ fstr *fstr_copy(const fstr *str) {
 void fstr_replace_chr(fstr *str, const chr from, const chr to) {
     PTR_SIZE len = fstr_length(str);
 
-    int cx = 0;
-
-    PTR_SIZE i = 0;
+    PTR_SIZE i;
     for (i = 0; i < len; i++) {
         if (str->data[i] == from) {
             str->data[i] = to;
@@ -68,14 +66,69 @@ void fstr_replace_chr(fstr *str, const chr from, const chr to) {
     }
 }
 
-void internal_remove_buf(fstr *str, char *buf, PTR_SIZE removeLen) {
+
+void internal_remove_buf(const fstr *str, const char *removeBuf, const PTR_SIZE removeLen) {
     PTR_SIZE len = fstr_length(str);
     PTR_SIZE i;
-    for (i = 0; i < len; i++){
+    PTR_SIZE secondary = 0;
 
+    //TODO I wonder if theres a way to remove the alloc...
+    //I'm too silly rn to be able to figure it out, but TBH we should be able to just shift our 'i' condition back the length of the remove length, and decrease our len
+    //We can also do this non iteratively with memcpy and stuff, but I'm not too worried if this is a bit slow
+    fstr *copy = fstr_copy(str);
+
+    for (i = 0; i < len; i++) {
+        u8 found = 1;
+
+        //Check for the non-existence of the substring removeBuf
+        PTR_SIZE c;
+        for (c = 0; c < removeLen; c++) {
+            //Do an OOB check,    Do char comparison
+            if ((i + c) >= len || copy->data[c + i] != removeBuf[c]) {
+                found = 0;
+                break;
+            }
+        }
+
+        //Skip over the stuff we don't want to include
+        if (found) {
+            i += removeLen - 1;
+        }
+            //Place our characters into our str
+        else {
+            str->data[secondary] = copy->data[i];
+            secondary++;
+        }
     }
+
+    fstr_free(copy);
+
+    internal_fstr_set_end(str, secondary);
 }
 
+
+void fstr_remove(const fstr *str, const fstr *buf) {
+    internal_remove_buf(str, buf->data, fstr_length(buf));
+}
+
+void fstr_remove_C(const fstr *str, const chr *buf) {
+    internal_remove_buf(str, buf, strlen(buf));
+}
+
+
+void fstr_append_chr(fstr *str, const chr c) {
+    PTR_SIZE len = fstr_length(str);
+    str->data = realloc(str->data, (len + 1) * sizeof(chr));
+
+    //Return an error if alloc fails
+    if (str->data == NULL) {
+        str->error = STR_ERR_ReallocFailed;
+        return;
+    }
+
+    str->data[len] = c;
+    internal_fstr_set_end(str, len + 1);
+}
 
 void fstr_remove_chr_varargs(fstr *str, int num_chars, ...) {
     va_list args;
@@ -95,7 +148,7 @@ void fstr_remove_chr(fstr *str, const chr from) {
     PTR_SIZE secondary = 0;
     PTR_SIZE primary;
 
-    //Iterate our string and place our non from strings into our same string in order
+    //Iterate our string and place our non-from strings into our same string in order
     for (primary = 0; primary < len; primary++) {
         if (str->data[primary] != from) {
             str->data[secondary] = str->data[primary];
@@ -106,8 +159,6 @@ void fstr_remove_chr(fstr *str, const chr from) {
     str->data = realloc(str->data, secondary * sizeof(chr));
 
     internal_fstr_set_end(str, secondary);
-
-//    fstr_free(copy);
 }
 
 
@@ -124,12 +175,7 @@ PTR_SIZE fstr_count_chr(const fstr *str, const chr value) {
     return count;
 }
 
-
-//void fstr_copy(fstr *destination, fstr *source) {
-//    var slen = fstr_length(source);
-//}
-
-fstr *fstr_substrlen(fstr *str, int start, PTR_SIZE length) {
+fstr *fstr_substr(fstr *str, int start, PTR_SIZE length) {
     fstr *sub = fstr_from_length(length, '!');
 
     memcpy(sub->data, str->data + start, length * sizeof(chr));
@@ -167,14 +213,14 @@ fstr *fstr_from_C(const chr *buf) {
     memcpy(str->data, buf, bufSize);
 
     //Set the endpoint of our fstr
-    str->end = asptr(str->data) + asptr(bufSize);
+    str->end = as_ptr(str->data) + as_ptr(bufSize);
 
     return str;
 }
 
 
-uint8_t internal_validate_fstr(fstr *str) {
-    if (asptr(str->data) > str->end) {
+u8 internal_validate_fstr(fstr *str) {
+    if (as_ptr(str->data) > str->end) {
         str->error = STR_ERR_INCORRECT_CHAR_POINTER;
         return 0;
     }
@@ -333,7 +379,7 @@ fstr *fstr_from_length(uint64_t length, const chr fill) {
     memset(str->data, fill, length * sizeof(chr));
 
     //Set the end pointer to the last character of our stringF
-//    str->end = asptr(&str->data[length]);
+//    str->end = as_ptr(&str->data[length]);
     internal_fstr_set_end(str, length);
 
     return str;
@@ -405,7 +451,84 @@ void fstr_append_format_C(fstr *str, const char *format, ...) {
 //    }
 //}
 
-uint8_t fstr_equals(fstr *a, fstr *b) {
+
+#define is_chr(a) (chr_is_lower(a) || chr_is_upper(a))
+
+//0100 0001
+//0010 0000
+//0110 0001
+
+
+chr chr_to_invert(chr a) {
+    if (USING_CHAR) {
+        if ((a >= 65 && a <= 90) || (a >= 97 && a <= 122)) {
+            //This works great for well formed non ASCII extended characters
+            return (chr) (a ^ 0b00100000);
+        }
+
+        //Extended ASCII lookin like my 13th reason
+        switch (a) {
+            case 129:
+                return 154;
+            case 154:
+                return 129;
+            case 130:
+                return 144;
+            case 144:
+                return 130;
+            case 132:
+                return 142;
+            case 142:
+                return 132;
+            case 134:
+                return 143;
+            case 143:
+                return 134;
+            case 135:
+                return 128;
+            case 128:
+                return 135;
+            case 145:
+                return 146;
+            case 146:
+                return 145;
+            case 148:
+                return 153;
+            case 153:
+                return 148;
+            case 164:
+                return 165;
+            case 165:
+                return 164;
+            default:
+                return a;
+        }
+    }
+
+    return a;
+}
+
+chr chr_to_lower(chr a) {
+    if (chr_is_upper(a)) {
+        return chr_to_invert(a);
+    }
+    return a;
+}
+
+chr chr_to_upper(chr a) {
+    if (chr_is_lower(a)) {
+        return chr_to_invert(a);
+    }
+
+    return a;
+}
+
+
+void fstr_to_upper(fstr *a) {
+
+}
+
+u8 fstr_equals(fstr *a, fstr *b) {
 
     if (b == NULL) {
         a->error = STR_ERR_NullStringArg;
@@ -479,7 +602,7 @@ void fstr_insert(fstr *str, const fstr *add, uint64_t index) {
         return;
     }
 
-    internal_fstr_insert(str, add->data, index, asptr(fstr_length(add)));
+    internal_fstr_insert(str, add->data, index, as_ptr(fstr_length(add)));
 }
 
 void fstr_insert_c(fstr *str, const chr *add, uint64_t index) {
@@ -488,7 +611,7 @@ void fstr_insert_c(fstr *str, const chr *add, uint64_t index) {
         return;
     }
 
-    internal_fstr_insert(str, add, index, asptr(internal_C_string_length(add)));
+    internal_fstr_insert(str, add, index, as_ptr(internal_C_string_length(add)));
 }
 
 void fstr_pad(fstr *str, uint64_t targetLength, chr pad, int8_t side) {
@@ -536,6 +659,6 @@ void fstr_pad(fstr *str, uint64_t targetLength, chr pad, int8_t side) {
     }
 }
 
-uint8_t fstr_succeeded(fstr *str) {
+u8 fstr_succeeded(fstr *str) {
     return str->error == 0;
 }

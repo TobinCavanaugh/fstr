@@ -11,14 +11,31 @@
  */
 
 #include <stdint.h>
+#include <wchar.h>
 
 #ifndef FSTR_FSTR_H
 #define FSTR_FSTR_H
 
 #define PTR_SIZE size_t
 
-typedef char chr;
+#define chr char
 
+#define USING_WCHAR (sizeof(chr) == sizeof(wchar_t))
+#define USING_CHAR (sizeof(chr) == sizeof(char))
+
+
+//Fuck ASCII extended, they just totally ruined the simple organization of ASCII 7bit
+// Standard ascii       |-------------------| The rest is extended
+#define chr_is_lower(a) (USING_CHAR && (a >= 97 && a <= 122) || (a >= 129 && a <= 141) || (a == 145) || (a >= 147 && a <= 152) || (a >= 160 && a <= 164))
+//#define chr_is_lower(a) a
+
+#define chr_is_upper(a) ( USING_CHAR && ((a >= 65 && a <= 90) || (a >= 142 && a <= 146 && a != 145) || (a == 153) || (a == 154) || (a == 165)))
+//#define chr_is_upper(a) a
+#define chr_is_alpha(a) (chr_is_upper(a) || chr_is_lower(a))
+
+chr chr_to_lower(chr a);
+
+chr chr_to_upper(chr a);
 
 /////////////////////////////
 ///      DEFINITIONS      ///
@@ -50,12 +67,14 @@ typedef struct {
 #pragma endregion Definitions
 
 
-fstr *fstr_substrlen(fstr *str, int start, PTR_SIZE length);
+fstr *fstr_substr(fstr *str, int start, PTR_SIZE length);
 
 
 /////////////////////////////
 /// FUNCTION DECLARATIONS ///
 /////////////////////////////
+
+
 
 #pragma region String_Creation
 
@@ -85,10 +104,15 @@ fstr *fstr_from_length(uint64_t length, const chr fill);
 /// \param buf The string to be added
 void fstr_append_C(fstr *str, const chr *buf);
 
-/// Appends buf to strF
+/// Appends the fstr buf to the fstr
 /// \param str The string being appended to
 /// \param buf The string to be added
 void fstr_append(fstr *str, const fstr *buf);
+
+/// Appends a single character to the string
+/// \param str The string being appended to
+/// \param c The character to be appended
+void fstr_append_chr(fstr *str, const chr c);
 
 /// Insert a string at a particular point
 /// \param str The string to be modified
@@ -119,10 +143,21 @@ void fstr_pad(fstr *str, PTR_SIZE targetLength, chr pad, int8_t side);
 
 #pragma region String_Modification
 
+
+/// Removes any instances of the fstr buf in the str
+/// \param str The source string
+/// \param buf The buf to remove from the str
+void fstr_remove(const fstr *str, const fstr *buf);
+
+/// Removes any instances of the chr array buf in the str
+/// \param str The source string
+/// \param buf The buf to remove from the str
+void fstr_remove_C(const fstr *str, const chr *buf);
+
 /// Replaces any instances of the from character with the to character
-/// \param str
-/// \param from
-/// \param to
+/// \param str The source string
+/// \param from The chr as its found in the source
+/// \param to The new chr to replace the from chr
 void fstr_replace_chr(fstr *str, const chr from, const chr to);
 
 /// Removes any instances of a character, rippling the string. fstr_remove_chr(str, "AABBCC", 'A') -> "BBCC"
@@ -135,7 +170,6 @@ void fstr_remove_chr(fstr *str, const chr from);
 /// \param index The index of the character, 0 being the start of the string
 /// \param c The character to be assigned
 void fstr_replace_chr_at(fstr *str, PTR_SIZE index, chr c);
-
 
 /// Removes a
 /// \param str
