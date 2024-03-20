@@ -14,7 +14,7 @@
 
 bool is_char(chr c) {
     if (USING_CHAR) {
-        return (c >= 65 && c <= 90) || (c >= 97 && c <= 122);
+        return (chr_is_lower(c) || chr_is_upper(c));
     } else {
         return iswalpha(c);
     }
@@ -22,7 +22,9 @@ bool is_char(chr c) {
 
 bool is_digit(chr c) {
     if (USING_CHAR) {
-
+        return (c >= 48 && c <= 57);
+    } else {
+        return iswdigit(c);
     }
 }
 

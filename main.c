@@ -29,29 +29,16 @@ double stop_stopwatch(struct timeval start_time) {
 }
 
 int main() {
+    var str = fstr_from_C("12");
+    fstr_println(str);
 
-    int c;
-    for (c = 0; c <= 255; c++) {
-        printf("%c | _%c | ^%c\n", c, chr_to_lower(c), chr_to_upper(c));
+    long value;
+    if (fstr_try_to_long(str, &value)) {
+        printf("%ld", value);
+    } else {
+        printf("Failed :(");
     }
 
-    return 0;
 
-    int v;
-    for (v = 0; v <= 255; v++) {
-        char c = (char) v;
-        printf("%c > _%c & ^%c\n", c, chr_to_lower(c), chr_to_upper(c));
-    }
-
-//    var str = fstr_from_C("~~~~____~~~~");
-//
-//    var other = fstr_copy(str);
-//
-//    fstr_remove_C(other, "~~~~");
-//    fstr_remove_chr_varargs(other, 3, '.', '-', ' ');
-
-//    fstr_println(str);
-//    fstr_println(other);
-//
     return 0;
 }

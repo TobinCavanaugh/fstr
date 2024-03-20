@@ -23,19 +23,16 @@
 #define USING_WCHAR (sizeof(chr) == sizeof(wchar_t))
 #define USING_CHAR (sizeof(chr) == sizeof(char))
 
-
 //Fuck ASCII extended, they just totally ruined the simple organization of ASCII 7bit
-// Standard ascii       |-------------------| The rest is extended
-#define chr_is_lower(a) (USING_CHAR && (a >= 97 && a <= 122) || (a >= 129 && a <= 141) || (a == 145) || (a >= 147 && a <= 152) || (a >= 160 && a <= 164))
-//#define chr_is_lower(a) a
+//There will be NO ascii extended support besides just putting whatever chars you want in
 
-#define chr_is_upper(a) ( USING_CHAR && ((a >= 65 && a <= 90) || (a >= 142 && a <= 146 && a != 145) || (a == 153) || (a == 154) || (a == 165)))
-//#define chr_is_upper(a) a
-#define chr_is_alpha(a) (chr_is_upper(a) || chr_is_lower(a))
+#define chr_is_lower(a) (USING_CHAR && (a >= 97 && a <= 122)) || (USING_WCHAR && (iswlower(a)))
+#define chr_is_upper(a) (USING_CHAR && (a >= 65 && a <= 90)) || (USING_WCHAR && (iswupper(a)))
 
 chr chr_to_lower(chr a);
 
 chr chr_to_upper(chr a);
+
 
 /////////////////////////////
 ///      DEFINITIONS      ///
@@ -171,11 +168,23 @@ void fstr_remove_chr(fstr *str, const chr from);
 /// \param c The character to be assigned
 void fstr_replace_chr_at(fstr *str, PTR_SIZE index, chr c);
 
-/// Removes a
-/// \param str
-/// \param num_chars
-/// \param ...
+/// Removes all instances of the char parameters
+/// \param str The string to be modified
+/// \param num_chars The count of char params to be passed
+/// \param ... Chars to be removed
 void fstr_remove_chr_varargs(fstr *str, int num_chars, ...);
+
+/// Makes the string lowercase
+/// \param a The string to modify
+void fstr_to_lower(fstr *a);
+
+/// Makes the string uppercase
+/// \param a The string to modify
+void fstr_to_upper(fstr *a);
+
+/// Makes any uppercase into lowercase, and any lowercase into uppercase
+/// \param a The string to modify
+void fstr_invertcase(fstr *a);
 
 #pragma endregion String_Modification
 

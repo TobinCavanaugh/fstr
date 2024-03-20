@@ -46,14 +46,12 @@ llu internal_C_string_length(const chr *buf) {
     }
 }
 
-
 fstr *fstr_copy(const fstr *str) {
     PTR_SIZE len = fstr_length(str);
     fstr *new = fstr_from_length(len, '!');
     memcpy(new->data, str->data, len * sizeof(chr));
     return new;
 }
-
 
 void fstr_replace_chr(fstr *str, const chr from, const chr to) {
     PTR_SIZE len = fstr_length(str);
@@ -65,7 +63,6 @@ void fstr_replace_chr(fstr *str, const chr from, const chr to) {
         }
     }
 }
-
 
 void internal_remove_buf(const fstr *str, const char *removeBuf, const PTR_SIZE removeLen) {
     PTR_SIZE len = fstr_length(str);
@@ -439,69 +436,17 @@ void fstr_append_format_C(fstr *str, const char *format, ...) {
     va_end(args);
 }
 
-//void fstr_replace_chr(fstr *str, chr from, chr to) {
-//
-//    u64 len = fstr_length(str);
-//
-//    int i;
-//    for (i = 0; i < len; i++) {
-//        if (str->data[i] == from) {
-//            str->data[i] = to;
-//        }
-//    }
-//}
-
-
-#define is_chr(a) (chr_is_lower(a) || chr_is_upper(a))
-
-//0100 0001
-//0010 0000
-//0110 0001
-
-
 chr chr_to_invert(chr a) {
     if (USING_CHAR) {
         if ((a >= 65 && a <= 90) || (a >= 97 && a <= 122)) {
             //This works great for well formed non ASCII extended characters
             return (chr) (a ^ 0b00100000);
         }
-
-        //Extended ASCII lookin like my 13th reason
-        switch (a) {
-            case 129:
-                return 154;
-            case 154:
-                return 129;
-            case 130:
-                return 144;
-            case 144:
-                return 130;
-            case 132:
-                return 142;
-            case 142:
-                return 132;
-            case 134:
-                return 143;
-            case 143:
-                return 134;
-            case 135:
-                return 128;
-            case 128:
-                return 135;
-            case 145:
-                return 146;
-            case 146:
-                return 145;
-            case 148:
-                return 153;
-            case 153:
-                return 148;
-            case 164:
-                return 165;
-            case 165:
-                return 164;
-            default:
-                return a;
+    } else if (USING_WCHAR) {
+        if (chr_is_lower(a)) {
+            return towupper(a);
+        } else if (chr_is_upper(a)) {
+            return towlower(a);
         }
     }
 
@@ -524,8 +469,29 @@ chr chr_to_upper(chr a) {
 }
 
 
-void fstr_to_upper(fstr *a) {
+void fstr_to_lower(fstr *a) {
+    PTR_SIZE len = fstr_length(a);
+    PTR_SIZE i;
+    for (i = 0; i < len; i++) {
+        a->data[i] = chr_to_lower(a->data[i]);
+    }
+}
 
+void fstr_to_upper(fstr *a) {
+    PTR_SIZE len = fstr_length(a);
+    PTR_SIZE i;
+    for (i = 0; i < len; i++) {
+        a->data[i] = chr_to_upper(a->data[i]);
+    }
+}
+
+void fstr_invertcase(fstr *a) {
+    PTR_SIZE len = fstr_length(a);
+    PTR_SIZE i;
+    for (i = 0; i < len; i++) {
+        chr c = a->data[i];
+        a->data[i] = chr_to_invert(c);
+    }
 }
 
 u8 fstr_equals(fstr *a, fstr *b) {
