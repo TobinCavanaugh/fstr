@@ -84,7 +84,7 @@ void fstr_replace_chr(fstr *str, const chr from, const chr to) {
 }
 
 
-void fstr_remove_at(fstr *str, const usize index) {
+void fstr_remove_at(fstr *str, const usize index, const usize length) {
 
     usize startLen = fstr_length(str);
 
@@ -100,7 +100,8 @@ void fstr_remove_at(fstr *str, const usize index) {
     //TODO Reimplement in memcpy could be much quicker than iteration on BIG strings
     usize i, subIndex = 0;
     for (i = 0; i < startLen; i++) {
-        if (i != index) {
+        //if (i != index) {
+        if (i < index || i >= (index + length)) {
             str->data[subIndex] = str->data[i];
             subIndex++;
         }
@@ -115,9 +116,8 @@ void internal_replace_sub(fstr *str, usize len, chr *buf) {
 //    for (int i = 0; i <)
 }
 
-void internal_remove_buf(const fstr *str, const char *removeBuf, const usize removeLen) {
+void internal_remove_buf(fstr *str, const char *removeBuf, const usize removeLen) {
     usize len = fstr_length(str);
-    usize i;
     usize secondary = 0;
 
     //TODO I wonder if theres a way to remove the alloc...
@@ -125,6 +125,7 @@ void internal_remove_buf(const fstr *str, const char *removeBuf, const usize rem
     //We can also do this non iteratively with memcpy and stuff, but I'm not too worried if this is a bit slow
     fstr *copy = fstr_copy(str);
 
+    usize i;
     for (i = 0; i < len; i++) {
         u8 found = 1;
 
@@ -661,14 +662,23 @@ void internal_fstr_insert(fstr *str, const char *add, usize index, usize addLen)
         return;
     }
 
-
     //[A][B][C][D][E][F] <-(2) [Z][X][Y]
 
     //Shift the first part of the buffer over
 
+    usize rightBuffSize = (startLen - index) * sizeof(chr);
+
+    //Weve gotta write into a temporary buffer cuz otherwise we end up reading then rewriting already written data
+    chr *tmp = malloc(rightBuffSize);
+
+    memcpy_internal(tmp, str->data + index, rightBuffSize);
+
     //[A][B][C][D][E][F][-][-][-]
-    memcpy_internal(str->data + (index + addLen), str->data + index, (startLen - index) * sizeof(chr));
+    //Copy the stuff after the index and place it at its ideal location
+    memcpy_internal(str->data + (index + addLen), tmp, rightBuffSize);
     //[A][B][-][-][-][C][D][E][F]
+
+    free(tmp);
 
     //[A][B][-][-][-][C][D][E][F]
     memcpy_internal(str->data + index, add, addLen * sizeof(chr));
@@ -677,23 +687,23 @@ void internal_fstr_insert(fstr *str, const char *add, usize index, usize addLen)
     internal_fstr_set_end(str, finalLen);
 }
 
-void fstr_insert(fstr *str, const fstr *add, usize index) {
+void fstr_insert(fstr *str, usize index, const fstr *add) {
 
     if (add == NULL) {
         str->error = STR_ERR_NullStringArg;
         return;
     }
 
-    internal_fstr_insert(str, add->data, index, as_ptr(fstr_length(add)));
+    internal_fstr_insert(str, add->data, index, fstr_length(add));
 }
 
-void fstr_insert_c(fstr *str, const chr *add, usize index) {
+void fstr_insert_C(fstr *str, usize index, const chr *add) {
     if (add == NULL) {
         str->error = STR_ERR_NullStringArg;
         return;
     }
 
-    internal_fstr_insert(str, add, index, as_ptr(internal_C_string_length(add)));
+    internal_fstr_insert(str, add, index, internal_C_string_length(add));
 }
 
 void fstr_pad(fstr *str, usize targetLength, chr pad, int8_t side) {
@@ -711,7 +721,7 @@ void fstr_pad(fstr *str, usize targetLength, chr pad, int8_t side) {
     if (side < 0) {
         //Pad the left side
         fstr *prePad = fstr_from_length(diff, pad);
-        fstr_insert(str, prePad, 0);
+        fstr_insert(str, 0, prePad);
         free(prePad);
         return;
     }
@@ -719,7 +729,7 @@ void fstr_pad(fstr *str, usize targetLength, chr pad, int8_t side) {
     if (side == 0) {
         //Insert the pad on the left
         fstr *left = fstr_from_length(diff / 2, pad);
-        fstr_insert(str, left, 0);
+        fstr_insert(str, 0, left);
 
         //Pad the remaining right side. This is technically recursive but only ever a depth of 1
         fstr_pad(str, targetLength, pad, 1);
@@ -734,7 +744,7 @@ void fstr_pad(fstr *str, usize targetLength, chr pad, int8_t side) {
         fstr *prePad = fstr_from_length(diff, pad);
 
         usize len = fstr_length(str);
-        fstr_insert(str, prePad, len);
+        fstr_insert(str, len, prePad);
         free(prePad);
 
         return;

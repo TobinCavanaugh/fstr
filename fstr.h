@@ -113,13 +113,13 @@ void fstr_append_chr(fstr *str, const chr c);
 /// \param str The string to be modified
 /// \param add The string to be added
 /// \param index 0 inserts the string before any other data
-void fstr_insert(fstr *str, const fstr *add, usize index);
+void fstr_insert(fstr *str, usize index, const fstr *add);
 
 /// Inserts a C string at a particular point, see fstr_insert
 /// \param str The string to be modified
 /// \param add The C string to be added
 /// \param index 0 inserts the string before any other data
-void fstr_insert_c(fstr *str, const chr *add, usize index);
+void fstr_insert_C(fstr *str, usize index, const chr *add);
 
 /// Appends a formatted C string to the fstr
 /// \param str The string to be appended to
@@ -145,7 +145,7 @@ void fstr_clear(fstr *str);
 /// Removes the character at the particular index
 /// \param str The string to be modified
 /// \param index The index of the char to be removed, 0 based. Will not crash on OOB
-void fstr_remove_at(fstr *str, const usize index);
+void fstr_remove_at(fstr *str, const usize index, const usize length);
 
 /// Reverses the string
 /// \param str The string to be reversed
