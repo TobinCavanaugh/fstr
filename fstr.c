@@ -12,7 +12,7 @@
 
 #define u8 uint8_t
 
-/// Derived from GCC implementation
+/// Derived from GCC implementation, made more readable
 /// https://github.com/gcc-mirror/gcc/blob/master/libgcc/memcpy.c
 /// \param destination Where the memory is going to be put
 /// \param src Where the memory is being read from
@@ -28,7 +28,11 @@ void memcpy_internal(void *destination, const void *src, usize size) {
     }
 }
 
-void memset_internal(void *destination, const char fill, usize size) {
+/// Internal implementation of memset. Technically derived from GCC, but i wrote this before seeing the implementation
+/// \param destination The start of the memory to be changed
+/// \param fill The chr to fill the data with
+/// \param size The total size of the data
+void memset_internal(void *destination, const chr fill, usize size) {
     u8 *dest = destination;
     while (size--) {
         *dest = fill;
@@ -662,27 +666,24 @@ void internal_fstr_insert(fstr *str, const char *add, usize index, usize addLen)
         return;
     }
 
-    //[A][B][C][D][E][F] <-(2) [Z][X][Y]
+    //In the future for debugging / rewriting, draw out memory on paper to make it more understandable
 
-    //Shift the first part of the buffer over
-
+    //Get the buffer size of the right data that will be shifted
     usize rightBuffSize = (startLen - index) * sizeof(chr);
 
     //Weve gotta write into a temporary buffer cuz otherwise we end up reading then rewriting already written data
     chr *tmp = malloc(rightBuffSize);
 
+    //Write the right most data into a temporary buffer
     memcpy_internal(tmp, str->data + index, rightBuffSize);
 
-    //[A][B][C][D][E][F][-][-][-]
-    //Copy the stuff after the index and place it at its ideal location
+    //Copy the right most data and place it at its ideal location, leaving some remaining data after index with size of add
     memcpy_internal(str->data + (index + addLen), tmp, rightBuffSize);
-    //[A][B][-][-][-][C][D][E][F]
 
     free(tmp);
 
-    //[A][B][-][-][-][C][D][E][F]
+    //Replace the data after index with the size of add with the actual add data
     memcpy_internal(str->data + index, add, addLen * sizeof(chr));
-    //[A][B][Z][X][Y][C][D][E][F]
 
     internal_fstr_set_end(str, finalLen);
 }
