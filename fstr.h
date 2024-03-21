@@ -16,28 +16,17 @@
 #ifndef FSTR_FSTR_H
 #define FSTR_FSTR_H
 
-#define PTR_SIZE size_t
-
-#define chr char
-
-#define USING_WCHAR (sizeof(chr) == sizeof(wchar_t))
-#define USING_CHAR (sizeof(chr) == sizeof(char))
-
-//Fuck ASCII extended, they just totally ruined the simple organization of ASCII 7bit
-//There will be NO ascii extended support besides just putting whatever chars you want in
-
-#define chr_is_lower(a) (USING_CHAR && (a >= 97 && a <= 122)) || (USING_WCHAR && (iswlower(a)))
-#define chr_is_upper(a) (USING_CHAR && (a >= 65 && a <= 90)) || (USING_WCHAR && (iswupper(a)))
-
-chr chr_to_lower(chr a);
-
-chr chr_to_upper(chr a);
-
-
 /////////////////////////////
 ///      DEFINITIONS      ///
 /////////////////////////////
 #pragma region Definitions
+
+///usize is our common size to be used for string lengths, indexes, addresses, and the like
+#define usize uintptr_t
+
+///We use chr, the char type can be changed to wchar_t and most functionality will remain.
+#define chr char
+//#define chr wchar_t
 
 ///String errors, these will be updated on the fstr struct that you are using, in the error field
 typedef enum : uint8_t {
@@ -52,7 +41,7 @@ typedef enum : uint8_t {
 ///The main fstr struct, this is a new string type that uses a pointer to the end of the char array to control for length.
 typedef struct {
     //The address of the last character in our string, inclusive.
-    PTR_SIZE end;
+    usize end;
 
     //Whether an error occurred on the string operation
     STR_ERR error;
@@ -63,15 +52,24 @@ typedef struct {
 
 #pragma endregion Definitions
 
-
-fstr *fstr_substr(fstr *str, int start, PTR_SIZE length);
-
-
 /////////////////////////////
 /// FUNCTION DECLARATIONS ///
 /////////////////////////////
 
+#pragma region Character
 
+#define USING_WCHAR (sizeof(chr) == sizeof(wchar_t))
+#define USING_CHAR (sizeof(chr) == sizeof(char))
+
+//There will be NO ASCII extended case support, as it is not standardized
+#define chr_is_lower(a) (USING_CHAR && (a >= 97 && a <= 122)) || (USING_WCHAR && (iswlower(a)))
+#define chr_is_upper(a) (USING_CHAR && (a >= 65 && a <= 90)) || (USING_WCHAR && (iswupper(a)))
+
+chr chr_to_lower(chr a);
+
+chr chr_to_upper(chr a);
+
+#pragma endregion Character
 
 #pragma region String_Creation
 
@@ -90,7 +88,7 @@ fstr *fstr_from_format_C(const char *format, ...);
 /// \param length Total length of the string
 /// \param fill The fill character
 /// \return
-fstr *fstr_from_length(uint64_t length, const chr fill);
+fstr *fstr_from_length(usize length, const chr fill);
 
 #pragma endregion String_Creation
 
@@ -115,13 +113,13 @@ void fstr_append_chr(fstr *str, const chr c);
 /// \param str The string to be modified
 /// \param add The string to be added
 /// \param index 0 inserts the string before any other data
-void fstr_insert(fstr *str, const fstr *add, PTR_SIZE index);
+void fstr_insert(fstr *str, const fstr *add, usize index);
 
 /// Inserts a C string at a particular point, see fstr_insert
 /// \param str The string to be modified
 /// \param add The C string to be added
 /// \param index 0 inserts the string before any other data
-void fstr_insert_c(fstr *str, const chr *add, PTR_SIZE index);
+void fstr_insert_c(fstr *str, const chr *add, usize index);
 
 /// Appends a formatted C string to the fstr
 /// \param str The string to be appended to
@@ -131,15 +129,27 @@ void fstr_append_format_C(fstr *str, const char *format, ...);
 
 /// Pads the string to fit a target length
 /// \param str
-/// \param targetLength uint64_t width of max pad
+/// \param targetLength width of max pad
 /// \param pad The character to pad
 /// \param side -1 for pad left, 0 for pad both, 1 for pad right
-void fstr_pad(fstr *str, PTR_SIZE targetLength, chr pad, int8_t side);
+void fstr_pad(fstr *str, usize targetLength, chr pad, int8_t side);
 
 #pragma endregion String_Append
 
 #pragma region String_Modification
 
+/// Clear all the string characters
+/// \param str
+void fstr_clear(fstr *str);
+
+/// Removes the character at the particular index
+/// \param str The string to be modified
+/// \param index The index of the char to be removed, 0 based. Will not crash on OOB
+void fstr_remove_at(fstr *str, const usize index);
+
+/// Reverses the string
+/// \param str The string to be reversed
+void fstr_reverse(fstr *str);
 
 /// Removes any instances of the fstr buf in the str
 /// \param str The source string
@@ -166,7 +176,7 @@ void fstr_remove_chr(fstr *str, const chr from);
 /// \param str The string to index
 /// \param index The index of the character, 0 being the start of the string
 /// \param c The character to be assigned
-void fstr_replace_chr_at(fstr *str, PTR_SIZE index, chr c);
+void fstr_set_chr(fstr *str, usize index, chr c);
 
 /// Removes all instances of the char parameters
 /// \param str The string to be modified
@@ -190,11 +200,25 @@ void fstr_invertcase(fstr *a);
 
 #pragma region String_Utilities
 
+/// Returns an fstr substring of the string, starting at start and with a length
+/// \param str The string to be used
+/// \param start The start index of the substirng
+/// \param length The length of the substirng
+/// \return The substring
+fstr *fstr_substr(fstr *str, usize start, usize length);
+
+/// Returns 1 if the character was found, 0 if it wasnt, and sets the index to the index of the character
+/// \param str The string to search
+/// \param c The character to compare
+/// \param index The pointer to an index value which can be set
+/// \return 1 if the character is found, 0 if it isn't
+uint8_t fstr_index_of_chr(fstr *str, chr c, usize *index);
+
 /// Gets the count of the chr value in the fstr
 /// \param str The string to be checked
 /// \param value The chr to check the string for
 /// \return The count of characters
-PTR_SIZE fstr_count_chr(const fstr *str, const chr value);
+usize fstr_count_chr(const fstr *str, const chr value);
 
 /// Copies the fstr and returns the new copy
 /// \param str The string to be copied
@@ -221,7 +245,7 @@ void fstr_free(fstr *str);
 /// Returns the length of the string
 /// \param str The corresponding string
 /// \return The length of the string. Ex: ":)" returns 2
-PTR_SIZE fstr_length(const fstr *str);
+usize fstr_length(const fstr *str);
 
 /// Whether or not the string is in a state of error
 /// \param str

@@ -4,28 +4,47 @@
 
 #include "fstr.h"
 #include <malloc.h>
-#include <string.h>
 #include <stdio.h>
 #include <stdarg.h>
-#include <unistd.h>
 #include <wchar.h>
 
-#define as_ptr(a) ((PTR_SIZE) (a))
+#define as_ptr(a) ((usize) (a))
 
-#define u64 uint64_t
 #define u8 uint8_t
-#define llu unsigned long long
 
+/// Derived from GCC implementation
+/// https://github.com/gcc-mirror/gcc/blob/master/libgcc/memcpy.c
+/// \param destination Where the memory is going to be put
+/// \param src Where the memory is being read from
+/// \param size The size of the data to be copied
+void memcpy_internal(void *destination, const void *src, usize size) {
+    u8 *destStart = destination;
+    const char *readStart = src;
 
-PTR_SIZE fstr_length(const fstr *str) {
-    uint64_t diff = (as_ptr(str->end) - as_ptr(str->data)) / sizeof(chr);
+    while (size--) {
+        *destStart = *readStart;
+        *readStart++;
+        *destStart++;
+    }
+}
+
+void memset_internal(void *destination, const char fill, usize size) {
+    u8 *dest = destination;
+    while (size--) {
+        *dest = fill;
+        dest++;
+    }
+}
+
+usize fstr_length(const fstr *str) {
+    usize diff = ((as_ptr(str->end) - as_ptr(str->data)) / sizeof(chr));
     return diff;
 }
 
 /// Sets the end pointer of the fstr
 /// \param str
 /// \param newLength
-void internal_fstr_set_end(fstr *str, PTR_SIZE newLength) {
+void internal_fstr_set_end(fstr *str, usize newLength) {
     //Set the end to the address last indexed character of the string
     str->end = as_ptr(&str->data[newLength]);
 }
@@ -33,11 +52,11 @@ void internal_fstr_set_end(fstr *str, PTR_SIZE newLength) {
 /// Custom String Length function
 /// \param buf The string to check
 /// \return The length of the string, NOT including the null terminator
-llu internal_C_string_length(const chr *buf) {
+usize internal_C_string_length(const chr *buf) {
     if (USING_WCHAR) {
         return wcslen(buf);
     } else {
-        PTR_SIZE i = 0;
+        usize i = 0;
         while (buf[i] != '\0') {
             i++;
         }
@@ -47,16 +66,16 @@ llu internal_C_string_length(const chr *buf) {
 }
 
 fstr *fstr_copy(const fstr *str) {
-    PTR_SIZE len = fstr_length(str);
+    usize len = fstr_length(str);
     fstr *new = fstr_from_length(len, '!');
-    memcpy(new->data, str->data, len * sizeof(chr));
+    memcpy_internal(new->data, str->data, len * sizeof(chr));
     return new;
 }
 
 void fstr_replace_chr(fstr *str, const chr from, const chr to) {
-    PTR_SIZE len = fstr_length(str);
+    usize len = fstr_length(str);
 
-    PTR_SIZE i;
+    usize i;
     for (i = 0; i < len; i++) {
         if (str->data[i] == from) {
             str->data[i] = to;
@@ -64,10 +83,42 @@ void fstr_replace_chr(fstr *str, const chr from, const chr to) {
     }
 }
 
-void internal_remove_buf(const fstr *str, const char *removeBuf, const PTR_SIZE removeLen) {
-    PTR_SIZE len = fstr_length(str);
-    PTR_SIZE i;
-    PTR_SIZE secondary = 0;
+
+void fstr_remove_at(fstr *str, const usize index) {
+
+    usize startLen = fstr_length(str);
+
+    if (startLen == 0) {
+        return;
+    }
+
+    if (index >= startLen) {
+        str->error = STR_ERR_IndexOutOfBounds;
+        return;
+    }
+
+    //TODO Reimplement in memcpy could be much quicker than iteration on BIG strings
+    usize i, subIndex = 0;
+    for (i = 0; i < startLen; i++) {
+        if (i != index) {
+            str->data[subIndex] = str->data[i];
+            subIndex++;
+        }
+    }
+
+//    memcpy_internal(str->data + (index), str->data + index, (startLen - index) * sizeof(chr));
+
+    internal_fstr_set_end(str, subIndex);
+}
+
+void internal_replace_sub(fstr *str, usize len, chr *buf) {
+//    for (int i = 0; i <)
+}
+
+void internal_remove_buf(const fstr *str, const char *removeBuf, const usize removeLen) {
+    usize len = fstr_length(str);
+    usize i;
+    usize secondary = 0;
 
     //TODO I wonder if theres a way to remove the alloc...
     //I'm too silly rn to be able to figure it out, but TBH we should be able to just shift our 'i' condition back the length of the remove length, and decrease our len
@@ -78,7 +129,7 @@ void internal_remove_buf(const fstr *str, const char *removeBuf, const PTR_SIZE 
         u8 found = 1;
 
         //Check for the non-existence of the substring removeBuf
-        PTR_SIZE c;
+        usize c;
         for (c = 0; c < removeLen; c++) {
             //Do an OOB check,    Do char comparison
             if ((i + c) >= len || copy->data[c + i] != removeBuf[c]) {
@@ -109,12 +160,11 @@ void fstr_remove(const fstr *str, const fstr *buf) {
 }
 
 void fstr_remove_C(const fstr *str, const chr *buf) {
-    internal_remove_buf(str, buf, strlen(buf));
+    internal_remove_buf(str, buf, internal_C_string_length(buf));
 }
 
-
 void fstr_append_chr(fstr *str, const chr c) {
-    PTR_SIZE len = fstr_length(str);
+    usize len = fstr_length(str);
     str->data = realloc(str->data, (len + 1) * sizeof(chr));
 
     //Return an error if alloc fails
@@ -132,7 +182,7 @@ void fstr_remove_chr_varargs(fstr *str, int num_chars, ...) {
 
     va_start(args, num_chars);
 
-    PTR_SIZE i;
+    usize i;
     for (i = 0; i < num_chars; i++) {
         fstr_remove_chr(str, (chr) va_arg(args, int));
     }
@@ -141,9 +191,9 @@ void fstr_remove_chr_varargs(fstr *str, int num_chars, ...) {
 }
 
 void fstr_remove_chr(fstr *str, const chr from) {
-    PTR_SIZE len = fstr_length(str);
-    PTR_SIZE secondary = 0;
-    PTR_SIZE primary;
+    usize len = fstr_length(str);
+    usize secondary = 0;
+    usize primary;
 
     //Iterate our string and place our non-from strings into our same string in order
     for (primary = 0; primary < len; primary++) {
@@ -159,11 +209,11 @@ void fstr_remove_chr(fstr *str, const chr from) {
 }
 
 
-PTR_SIZE fstr_count_chr(const fstr *str, const chr value) {
-    PTR_SIZE len = fstr_length(str);
+usize fstr_count_chr(const fstr *str, const chr value) {
+    usize len = fstr_length(str);
 
-    PTR_SIZE count = 0;
-    PTR_SIZE i;
+    usize count = 0;
+    usize i;
     for (i = 0; i < len; i++) {
         if (str->data[i] == value) {
             count++;
@@ -172,18 +222,42 @@ PTR_SIZE fstr_count_chr(const fstr *str, const chr value) {
     return count;
 }
 
-fstr *fstr_substr(fstr *str, int start, PTR_SIZE length) {
+
+u8 fstr_index_of_chr(fstr *str, char c, usize *index) {
+    usize i;
+    usize len = fstr_length(str);
+
+    for (i = 0; i < len; i++) {
+        if (str->data[i] == c) {
+            *index = i;
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+fstr *fstr_substr(fstr *str, usize start, usize length) {
+
+    usize len = fstr_length(str);
+    if (start >= len) {
+        str->error = STR_ERR_IndexOutOfBounds;
+        return fstr_from_C("");
+    }
+
+    //Create our dummy string
     fstr *sub = fstr_from_length(length, '!');
 
-    memcpy(sub->data, str->data + start, length * sizeof(chr));
+    //Copy the memory over from our start string
+    memcpy_internal(sub->data, str->data + start, length * sizeof(chr));
 
     internal_fstr_set_end(sub, length);
 
     return sub;
 }
 
-void fstr_replace_chr_at(fstr *str, uint64_t index, chr c) {
-    uint64_t len = fstr_length(str);
+void fstr_set_chr(fstr *str, usize index, chr c) {
+    usize len = fstr_length(str);
     if (index >= len) {
         str->error = STR_ERR_IndexOutOfBounds;
         return;
@@ -195,7 +269,7 @@ void fstr_replace_chr_at(fstr *str, uint64_t index, chr c) {
 fstr *fstr_from_C(const chr *buf) {
 
     //Calculate the size of our buffer
-    llu bufSize = internal_C_string_length(buf) * sizeof(chr);
+    usize bufSize = internal_C_string_length(buf) * sizeof(chr);
 
     //Malloc our struct
     fstr *str = malloc(sizeof(fstr));
@@ -207,7 +281,7 @@ fstr *fstr_from_C(const chr *buf) {
     str->error = STR_ERR_None;
 
     //Copy in our buffer to our data
-    memcpy(str->data, buf, bufSize);
+    memcpy_internal(str->data, buf, bufSize);
 
     //Set the endpoint of our fstr
     str->end = as_ptr(str->data) + as_ptr(bufSize);
@@ -226,8 +300,12 @@ u8 internal_validate_fstr(fstr *str) {
 }
 
 void fstr_free(fstr *str) {
-    free(str->data);
-    free(str);
+    if (str != NULL) {
+        if (str->data != NULL) {
+            free(str->data);
+        }
+        free(str);
+    }
 }
 
 void internal_print_chr(const chr *format, const chr print) {
@@ -240,18 +318,17 @@ void internal_print_chr(const chr *format, const chr print) {
 
 void fstr_print_chrs(const fstr *str) {
     if (USING_CHAR) {
-        PTR_SIZE i;
-        u64 len = fstr_length(str);
+        usize i;
+        usize len = fstr_length(str);
         for (i = 0; i < len; i++) {
             internal_print_chr("%c", str->data[i]);
         }
     }
 }
 
-
 void fstr_print_chrs_f(const fstr *str, const chr *format) {
-    PTR_SIZE i;
-    u64 len = fstr_length(str);
+    usize i;
+    usize len = fstr_length(str);
     for (i = 0; i < len; i++) {
         internal_print_chr(format, str->data[i]);
     }
@@ -259,8 +336,8 @@ void fstr_print_chrs_f(const fstr *str, const chr *format) {
 
 void fstr_print(const fstr *str) {
     if (USING_CHAR) {
-        u64 len = fstr_length(str);
-        write(STDOUT_FILENO, str->data, len);
+        usize len = fstr_length(str);
+        fwrite(str->data, sizeof(chr), len, stdout);
     } else if (USING_WCHAR) {
         wprintf(L"%ls", str->data);
     }
@@ -273,8 +350,8 @@ void fstr_println(const fstr *str) {
 }
 
 void fstr_print_hex(const fstr *str) {
-    u64 len = fstr_length(str);
-    PTR_SIZE i;
+    usize len = fstr_length(str);
+    usize i;
     for (i = 0; i < len; i++) {
         printf("0x%x ", str->data[i]);
     }
@@ -282,13 +359,13 @@ void fstr_print_hex(const fstr *str) {
 
 char *fstr_as_C_heap(const fstr *from) {
     //Get the length of our from string
-    u64 len = fstr_length(from);
+    usize len = fstr_length(from);
 
     //Allocate our new memory, plus one on length for the null terminator
     char *toStr = calloc(len + 1, sizeof(char));
 
     //Copy our source data over
-    memcpy(toStr, from->data, len * sizeof(chr));
+    memcpy_internal(toStr, from->data, len * sizeof(chr));
 
     //Add the null terminator
     toStr[len] = '\0';
@@ -304,9 +381,9 @@ void fstr_append(fstr *str, const fstr *buf) {
     }
 
     //Get / calculate the lengths that will be involved
-    u64 startLength = fstr_length(str);
-    u64 bufLength = fstr_length(buf);
-    u64 newLength = startLength + bufLength;
+    usize startLength = fstr_length(str);
+    usize bufLength = fstr_length(buf);
+    usize newLength = startLength + bufLength;
 
     if (newLength == 0) {
         return;
@@ -322,7 +399,7 @@ void fstr_append(fstr *str, const fstr *buf) {
     }
 
     //Copy the data from our buf onto our str data with an offset of our initial size in bytes
-    memcpy(str->data + startLength * sizeof(chr), buf->data, bufLength * sizeof(chr));
+    memcpy_internal(str->data + startLength * sizeof(chr), buf->data, bufLength * sizeof(chr));
 
     //Set the end to the pointer to the last character of our new string
     internal_fstr_set_end(str, newLength);
@@ -336,9 +413,9 @@ void fstr_append_C(fstr *str, const chr *buf) {
     }
 
     //Calculate lengths
-    u64 startLen = fstr_length(str);
-    llu bufLen = internal_C_string_length(buf);
-    llu newLen = startLen + bufLen;
+    usize startLen = fstr_length(str);
+    usize bufLen = internal_C_string_length(buf);
+    usize newLen = startLen + bufLen;
 
     //Realloc the string
     str->data = realloc(str->data, newLen * sizeof(chr));
@@ -350,13 +427,13 @@ void fstr_append_C(fstr *str, const chr *buf) {
     }
 
     //Copy the string memory in
-    memcpy(str->data + startLen, buf, bufLen * sizeof(chr));
+    memcpy_internal(str->data + startLen, buf, bufLen * sizeof(chr));
 
     //Recalculate the end
     internal_fstr_set_end(str, newLen);
 }
 
-fstr *fstr_from_length(uint64_t length, const chr fill) {
+fstr *fstr_from_length(usize length, const chr fill) {
 
     //Error check
     if (length <= 0) {
@@ -373,7 +450,7 @@ fstr *fstr_from_length(uint64_t length, const chr fill) {
     str->error = STR_ERR_None;
 
     //Set all the memory to our fill character
-    memset(str->data, fill, length * sizeof(chr));
+    memset_internal(str->data, fill, length * sizeof(chr));
 
     //Set the end pointer to the last character of our stringF
 //    str->end = as_ptr(&str->data[length]);
@@ -414,9 +491,9 @@ void fstr_append_format_C(fstr *str, const char *format, ...) {
     va_start(args, format);
 
     //Get the sizes
-    llu startSize = fstr_length(str) * sizeof(chr);
-    llu addSize = _vscprintf(format, args) / sizeof(chr);
-    llu finalSize = startSize + addSize;
+    usize startSize = fstr_length(str) * sizeof(chr);
+    usize addSize = _vscprintf(format, args) / sizeof(chr);
+    usize finalSize = startSize + addSize;
 
     //Reallocate the data of the string to fit our finalSize
     str->data = realloc(str->data, finalSize * sizeof(chr));
@@ -470,24 +547,24 @@ chr chr_to_upper(chr a) {
 
 
 void fstr_to_lower(fstr *a) {
-    PTR_SIZE len = fstr_length(a);
-    PTR_SIZE i;
+    usize len = fstr_length(a);
+    usize i;
     for (i = 0; i < len; i++) {
         a->data[i] = chr_to_lower(a->data[i]);
     }
 }
 
 void fstr_to_upper(fstr *a) {
-    PTR_SIZE len = fstr_length(a);
-    PTR_SIZE i;
+    usize len = fstr_length(a);
+    usize i;
     for (i = 0; i < len; i++) {
         a->data[i] = chr_to_upper(a->data[i]);
     }
 }
 
 void fstr_invertcase(fstr *a) {
-    PTR_SIZE len = fstr_length(a);
-    PTR_SIZE i;
+    usize len = fstr_length(a);
+    usize i;
     for (i = 0; i < len; i++) {
         chr c = a->data[i];
         a->data[i] = chr_to_invert(c);
@@ -501,14 +578,14 @@ u8 fstr_equals(fstr *a, fstr *b) {
         return 0;
     }
 
-    u64 aLen = fstr_length(a);
-    u64 bLen = fstr_length(b);
+    usize aLen = fstr_length(a);
+    usize bLen = fstr_length(b);
 
     if (aLen != bLen) {
         return 0;
     }
 
-    PTR_SIZE i;
+    usize i;
     for (i = 0; i < aLen; i++) {
         if (a->data[i] != b->data[i]) {
             return 0;
@@ -518,15 +595,54 @@ u8 fstr_equals(fstr *a, fstr *b) {
     return 1;
 }
 
+
+void fstr_reverse(fstr *str) {
+    usize len = fstr_length(str);
+
+    if (len == 0 || len == 1) {
+        return;
+    }
+
+    //TODO Refactor fstr_reverse. It's fine but not quite clean
+    if (len == 2) {
+        chr tmp = str->data[0];
+        str->data[0] = str->data[1];
+        str->data[1] = tmp;
+        return;
+    }
+
+    usize i = 0;
+    usize j = len;
+
+    for (i; i < len; i++) {
+        j--;
+
+        chr tmp = str->data[i];
+        str->data[i] = str->data[j];
+        str->data[j] = tmp;
+
+        //TODO Refactor fstr_reverse. It's fine but not quite clean
+        if (j == i) {
+            break;
+        }
+    }
+}
+
+void fstr_clear(fstr *str) {
+    free(str->data);
+    str->data = calloc(1, sizeof(chr));
+    internal_fstr_set_end(str, 1);
+}
+
 /// The internal string insert function
 /// \param str
 /// \param add
 /// \param index
 /// \param addLen
-void internal_fstr_insert(fstr *str, const char *add, PTR_SIZE index, PTR_SIZE addLen) {
+void internal_fstr_insert(fstr *str, const char *add, usize index, usize addLen) {
 
-    u64 startLen = fstr_length(str);
-    u64 finalLen = startLen + addLen;
+    usize startLen = fstr_length(str);
+    usize finalLen = startLen + addLen;
 
     if (addLen == 0) {
         return;
@@ -551,17 +667,17 @@ void internal_fstr_insert(fstr *str, const char *add, PTR_SIZE index, PTR_SIZE a
     //Shift the first part of the buffer over
 
     //[A][B][C][D][E][F][-][-][-]
-    memcpy(str->data + (index + addLen), str->data + index, (startLen - index) * sizeof(chr));
+    memcpy_internal(str->data + (index + addLen), str->data + index, (startLen - index) * sizeof(chr));
     //[A][B][-][-][-][C][D][E][F]
 
     //[A][B][-][-][-][C][D][E][F]
-    memcpy(str->data + index, add, addLen * sizeof(chr));
+    memcpy_internal(str->data + index, add, addLen * sizeof(chr));
     //[A][B][Z][X][Y][C][D][E][F]
 
     internal_fstr_set_end(str, finalLen);
 }
 
-void fstr_insert(fstr *str, const fstr *add, uint64_t index) {
+void fstr_insert(fstr *str, const fstr *add, usize index) {
 
     if (add == NULL) {
         str->error = STR_ERR_NullStringArg;
@@ -571,7 +687,7 @@ void fstr_insert(fstr *str, const fstr *add, uint64_t index) {
     internal_fstr_insert(str, add->data, index, as_ptr(fstr_length(add)));
 }
 
-void fstr_insert_c(fstr *str, const chr *add, uint64_t index) {
+void fstr_insert_c(fstr *str, const chr *add, usize index) {
     if (add == NULL) {
         str->error = STR_ERR_NullStringArg;
         return;
@@ -580,16 +696,16 @@ void fstr_insert_c(fstr *str, const chr *add, uint64_t index) {
     internal_fstr_insert(str, add, index, as_ptr(internal_C_string_length(add)));
 }
 
-void fstr_pad(fstr *str, uint64_t targetLength, chr pad, int8_t side) {
+void fstr_pad(fstr *str, usize targetLength, chr pad, int8_t side) {
 
-    u64 currentLen = fstr_length(str);
+    usize currentLen = fstr_length(str);
 
     if (targetLength <= currentLen) {
         str->error = STR_ERR_IndexOutOfBounds;
         return;
     }
 
-    u64 diff = targetLength - currentLen;
+    usize diff = targetLength - currentLen;
 
     ///Pad the left side
     if (side < 0) {
@@ -605,7 +721,7 @@ void fstr_pad(fstr *str, uint64_t targetLength, chr pad, int8_t side) {
         fstr *left = fstr_from_length(diff / 2, pad);
         fstr_insert(str, left, 0);
 
-        //Pad the remaining right side
+        //Pad the remaining right side. This is technically recursive but only ever a depth of 1
         fstr_pad(str, targetLength, pad, 1);
 
         //Free the left memory
@@ -617,7 +733,7 @@ void fstr_pad(fstr *str, uint64_t targetLength, chr pad, int8_t side) {
         //Pad the right side
         fstr *prePad = fstr_from_length(diff, pad);
 
-        u64 len = fstr_length(str);
+        usize len = fstr_length(str);
         fstr_insert(str, prePad, len);
         free(prePad);
 

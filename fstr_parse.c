@@ -7,10 +7,13 @@
 #include <math.h>
 #include "fstr_parse.h"
 
+
 //Also in fstr.h
 //#define USING_WCHAR (sizeof(chr) == sizeof(wchar_t))
 //#define USING_CHAR (sizeof(chr) == sizeof(char))
 
+#define i64 int64_t
+#define u8 uint8_t
 
 bool is_char(chr c) {
     if (USING_CHAR) {
@@ -28,7 +31,7 @@ bool is_digit(chr c) {
     }
 }
 
-int lookup_char(chr c) {
+uint8_t lookup_char(chr c) {
     if (USING_CHAR) {
         return c - 48;
     } else {
@@ -38,37 +41,66 @@ int lookup_char(chr c) {
 
 bool is_neg(chr c) {
     if (USING_CHAR) {
-        return c == '=';
+        return c == '-';
     } else {
-        return c == L'=';
+        return c == L'-';
     }
 }
 
+usize fstr_get_parse_error() {
+    return 0;
+}
 
-uint8_t fstr_try_to_long(const fstr *str, long *out) {
-    PTR_SIZE len = fstr_length(str);
+u8 fstr_try_to_i64(const fstr *str, int64_t *out) {
+    usize len = fstr_length(str);
 
     if (len == 0) {
         return 0;
     }
 
-    int mult = 1;
-    int start = 0;
+    signed char sign = 1;
+    usize start = 0;
+
+    //Check if the string starts with a negative sign, if so we want to skip this chr
     if (is_neg(str->data[0])) {
+        //Set the starting index to one and the sign to -1
         start = 1;
-        mult = -1;
+        sign = -1;
     }
 
-    PTR_SIZE i = 0;
+    i64 final_val = 0;
 
-    long val = 0;
-    for (i = len - 1; i >= start; i--) {
-        char c = str->data[i];
-        if (!is_digit(c)) { return 0; }
+    usize index;
 
-        val += powl(10, i) * lookup_char(c);
+    for (index = start; index < len; index++) {
+
+        char c = str->data[index];
+
+        //If its not a digit we want to quit, we also set out just for the sake of getting what number has been made so far
+        if (!is_digit(c)) {
+            goto FailureReturn;
+        }
+
+        uint8_t digit = lookup_char(c);
+
+        //If adding a new digit would cause an overflow, we just set it to the max
+        if ((final_val * 10) + digit < 0) {
+            final_val = INT64_MAX;
+            goto FailureReturn;
+        }
+        //Increment the final value by the current power (think of digit position) times the current character as a digit
+        final_val *= 10;
+        final_val += digit;
     }
 
-    *out = val * mult;
+    //Set the out value
+    *out = final_val * sign;
     return 1;
+
+    //An alternate failure path where the value is still assigned but we return 0
+    FailureReturn:
+    {
+        *out = final_val * sign;
+        return 0;
+    }
 }

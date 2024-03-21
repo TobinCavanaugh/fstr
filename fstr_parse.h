@@ -13,6 +13,8 @@
 
 #define bool uint8_t
 
-bool fstr_try_to_long(const fstr *str, long *out);
+usize fstr_get_parse_error();
+
+uint8_t fstr_try_to_i64(const fstr *str, int64_t *out);
 
 #endif //FSTR_FSTR_PARSE_H
