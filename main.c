@@ -5,8 +5,10 @@
 #include <locale.h>
 #include <string.h>
 #include <ctype.h>
+#include <malloc.h>
 #include "fstr.h"
 #include "fstr_parse.h"
+#include "fstr_tests.h"
 
 #define var __auto_type
 
@@ -29,15 +31,14 @@ double stop_stopwatch(struct timeval start_time) {
 }
 
 int main() {
-    var str = fstr_from_C("12");
-    fstr_println(str);
+//    fstr_run_tests();
 
-    long value;
-    if (fstr_try_to_long(str, &value)) {
-        printf("%ld", value);
-    } else {
-        printf("Failed :(");
-    }
+    fstr *str = fstr_from_C(" \t\n   0 12345 6 7 89  \n\n ");
+    fstr_println(str);
+    printf("===========\n");
+    fstr_trim(str, 0);
+
+    fstr_println(str);
 
 
     return 0;

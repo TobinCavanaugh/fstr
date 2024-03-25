@@ -272,6 +272,11 @@ void fstr_println(const fstr *str);
 /// \param format
 void fstr_print_chrs_f(const fstr *str, const chr *format);
 
+/// Trims a particular side of the fstr from all spaces, tabs, newlines, carriage returns, and the like.
+/// \param str The string to be modified
+/// \param side The side to trim, 0 for both sides, -1 for left, +1 for right
+void fstr_trim(fstr *str, int8_t side);
+
 #pragma endregion String_Utilities
 
 #endif //FSTR_FSTR_H

@@ -550,6 +550,55 @@ chr chr_to_upper(chr a) {
     return a;
 }
 
+chr internal_chr_is_trim(chr c) {
+    return (c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\v' || c == '\f');
+}
+
+void internal_trim_side(fstr *str, int8_t side) {
+
+}
+
+void fstr_trim(fstr *str, int8_t side) {
+
+    //TODO There must be a better way to do two for loops going in counter directions with same/similar functionality
+
+    //If we are trimming the left side
+    if (side <= 0) {
+
+        int startTrim = 0;
+        int i;
+
+        //Go through the string, keep count of any trim characters, if theres a non trim character then we exit and cut that off
+        for (i = 0; i < fstr_length(str); i++) {
+            chr c = str->data[i];
+            if (internal_chr_is_trim(c)) {
+                startTrim++;
+            } else {
+                break;
+            }
+        }
+
+        fstr_remove_at(str, 0, startTrim);
+    }
+    if (side >= 0) {
+        int endTrim = 0;
+        int i;
+        //See (side <= 0)
+        for (i = fstr_length(str) - 1; i >= 0; i--) {
+            chr c = str->data[i];
+            if (internal_chr_is_trim(c)) {
+                endTrim++;
+            } else {
+                break;
+            }
+        }
+
+        fstr_remove_at(str, fstr_length(str) - endTrim, endTrim);
+    }
+
+
+}
+
 
 void fstr_to_lower(fstr *a) {
     usize len = fstr_length(a);
