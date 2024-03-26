@@ -15,6 +15,8 @@
 #define i64 int64_t
 #define u8 uint8_t
 
+#define bool uint8_t
+
 bool is_char(chr c) {
     if (USING_CHAR) {
         return (chr_is_lower(c) || chr_is_upper(c));
@@ -52,7 +54,11 @@ usize fstr_get_parse_error() {
 }
 
 u8 fstr_try_to_i64(const fstr *str, int64_t *out) {
-    usize len = fstr_length(str);
+
+    fstr *cop = fstr_copy(str);
+    usize len = fstr_length(cop);
+
+    fstr_trim(cop, 0);
 
     if (len == 0) {
         return 0;
@@ -62,7 +68,7 @@ u8 fstr_try_to_i64(const fstr *str, int64_t *out) {
     usize start = 0;
 
     //Check if the string starts with a negative sign, if so we want to skip this chr
-    if (is_neg(str->data[0])) {
+    if (is_neg(cop->data[0])) {
         //Set the starting index to one and the sign to -1
         start = 1;
         sign = -1;
@@ -74,7 +80,7 @@ u8 fstr_try_to_i64(const fstr *str, int64_t *out) {
 
     for (index = start; index < len; index++) {
 
-        char c = str->data[index];
+        char c = cop->data[index];
 
         //If its not a digit we want to quit, we also set out just for the sake of getting what number has been made so far
         if (!is_digit(c)) {
@@ -95,12 +101,15 @@ u8 fstr_try_to_i64(const fstr *str, int64_t *out) {
 
     //Set the out value
     *out = final_val * sign;
+    free(cop);
     return 1;
 
     //An alternate failure path where the value is still assigned but we return 0
     FailureReturn:
     {
         *out = final_val * sign;
+        free(cop);
         return 0;
     }
+
 }
