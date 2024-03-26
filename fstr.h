@@ -207,6 +207,18 @@ void fstr_invertcase(fstr *a);
 /// \return The substring
 fstr *fstr_substr(fstr *str, usize start, usize length);
 
+/// Counts the instances of a C substring in str
+/// \param str The string to search
+/// \param sub The substring to look for
+/// \return The count of substrings
+usize fstr_count_C(const fstr *str, const chr *sub);
+
+/// Counts the instances of an fstr substring in the string
+/// \param str The string to search
+/// \param sub The substring to look for
+/// \return The count of substringsF
+usize fstr_count(const fstr * str, const fstr *sub);
+
 /// Returns 1 if the character was found, 0 if it wasnt, and sets the index to the index of the character
 /// \param str The string to search
 /// \param c The character to compare

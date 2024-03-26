@@ -1,15 +1,20 @@
-#include <stdint.h>
-#include <time.h>
-#include <sys/time.h>
 #include <stdio.h>
-#include <locale.h>
-#include <string.h>
-#include <ctype.h>
-#include <malloc.h>
 #include "fstr.h"
 #include "fstr_parse.h"
-#include "fstr_tests.h"
+#include "stdint.h"
 
+int main() {
+    fstr *str = fstr_from_C(" 1234 ");
+    int64_t value = 0;
+    if (fstr_try_to_i64(str, &value)) {
+        printf("%lld", value);
+    } else {
+        printf("Failed to parse fstr: ");
+        fstr_print(str);
+    }
+}
+
+/*
 #define var __auto_type
 
 //TODO MEMORY ARENA MACROS, OVERRIDE MALLOC, IMPLY ENDING THING
@@ -30,16 +35,4 @@ double stop_stopwatch(struct timeval start_time) {
     return elapsed_time;
 }
 
-int main() {
-//    fstr_run_tests();
-
-    fstr *str = fstr_from_C(" \t\n   0 12345 6 7 89  \n\n ");
-    fstr_println(str);
-    printf("===========\n");
-    fstr_trim(str, 0);
-
-    fstr_println(str);
-
-
-    return 0;
-}
+ */

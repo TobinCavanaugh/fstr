@@ -13,11 +13,20 @@
 //#define USING_CHAR (sizeof(chr) == sizeof(char))
 
 #define i64 int64_t
+#define u64 uint64_t
+
+#define i32 int32_t
+#define u32 uint32_t
+
+#define i16 int16_t
+#define u16 uint16_t
+
+#define i8 int8_t
 #define u8 uint8_t
 
 #define bool uint8_t
 
-bool is_char(chr c) {
+bool is_alpha(chr c) {
     if (USING_CHAR) {
         return (chr_is_lower(c) || chr_is_upper(c));
     } else {
@@ -49,16 +58,23 @@ bool is_neg(chr c) {
     }
 }
 
-usize fstr_get_parse_error() {
-    return 0;
+u64 to_u64(i64 val) {
+    if (val < 0) {
+        val = -val;
+    }
+
+    return (u64) val;
 }
 
-u8 fstr_try_to_i64(const fstr *str, int64_t *out) {
+u8 fstr_try_to_i64(const fstr *str, int64_t *outValue) {
 
+    //Make a copy of the string
     fstr *cop = fstr_copy(str);
-    usize len = fstr_length(cop);
 
+    //Remove newlines, spaces, etc.
     fstr_trim(cop, 0);
+
+    usize len = fstr_length(cop);
 
     if (len == 0) {
         return 0;
@@ -82,7 +98,7 @@ u8 fstr_try_to_i64(const fstr *str, int64_t *out) {
 
         char c = cop->data[index];
 
-        //If its not a digit we want to quit, we also set out just for the sake of getting what number has been made so far
+        //If its not a digit we want to quit, we also set outValue just for the sake of getting what number has been made so far
         if (!is_digit(c)) {
             goto FailureReturn;
         }
@@ -99,17 +115,39 @@ u8 fstr_try_to_i64(const fstr *str, int64_t *out) {
         final_val += digit;
     }
 
-    //Set the out value
-    *out = final_val * sign;
-    free(cop);
-    return 1;
+    //DefaultReturn
+    {
+        //Set the outValue value
+        *outValue = final_val * sign;
+        free(cop);
+        return 1;
+    }
 
     //An alternate failure path where the value is still assigned but we return 0
     FailureReturn:
     {
-        *out = final_val * sign;
+        *outValue = final_val * sign;
         free(cop);
         return 0;
     }
+}
 
+int64_t fstr_to_i64(const fstr *str) {
+    int64_t value = 0;
+    fstr_try_to_i64(str, &value);
+    return value;
+}
+
+
+bool fstr_try_to_u64(const fstr *str, uint64_t *outValue) {
+    i64 value = 0;
+    u8 ret = fstr_try_to_i64(str, &value);
+    *outValue = to_u64(value);
+    return ret;
+}
+
+u64 fstr_to_u64(const fstr *str) {
+    u64 val = 0;
+    fstr_try_to_u64(str, &val);
+    return val;
 }

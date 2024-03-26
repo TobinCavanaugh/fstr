@@ -28,6 +28,22 @@ void memcpy_internal(void *destination, const void *src, usize size) {
     }
 }
 
+u8 memeq_internal(const void *a, const void *b, uintptr_t size) {
+    usize counter = 0;
+
+    const u8 *aa = a;
+    const u8 *bb = b;
+
+    while (counter < size) {
+        if (aa[counter] != bb[counter]) {
+            return 0;
+        }
+        counter++;
+    }
+
+    return 1;
+}
+
 /// Internal implementation of memset. Technically derived from GCC, but i wrote this before seeing the implementation
 /// \param destination The start of the memory to be changed
 /// \param fill The chr to fill the data with
@@ -116,9 +132,9 @@ void fstr_remove_at(fstr *str, const usize index, const usize length) {
     internal_fstr_set_end(str, subIndex);
 }
 
-void internal_replace_sub(fstr *str, usize len, chr *buf) {
+//void internal_replace_sub(fstr *str, usize len, chr *buf) {
 //    for (int i = 0; i <)
-}
+//}
 
 void internal_remove_buf(fstr *str, const char *removeBuf, const usize removeLen) {
     usize len = fstr_length(str);
@@ -213,6 +229,31 @@ void fstr_remove_chr(fstr *str, const chr from) {
     internal_fstr_set_end(str, secondary);
 }
 
+
+usize fstr_count_internal(const fstr *str, const chr *sub, usize subLength) {
+    usize count = 0;
+
+    usize i = 0;
+    for (i = 0; i < fstr_length(str); i++) {
+        if (str->data[i] == sub[0]) {
+            if (memeq_internal(str->data + i, sub, subLength)) {
+                count++;
+            }
+        }
+    }
+
+    return count;
+}
+
+
+usize fstr_count_C(const fstr *str, const char *sub) {
+    return fstr_count_internal(str, sub, internal_C_string_length(sub));
+}
+
+
+usize fstr_count(const fstr *str, const fstr *sub) {
+    return fstr_count_internal(str, sub->data, fstr_length(sub));
+}
 
 usize fstr_count_chr(const fstr *str, const chr value) {
     usize len = fstr_length(str);
@@ -554,10 +595,6 @@ chr internal_chr_is_trim(chr c) {
     return (c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\v' || c == '\f');
 }
 
-void internal_trim_side(fstr *str, int8_t side) {
-
-}
-
 void fstr_trim(fstr *str, int8_t side) {
 
     //TODO There must be a better way to do two for loops going in counter directions with same/similar functionality
@@ -595,8 +632,6 @@ void fstr_trim(fstr *str, int8_t side) {
 
         fstr_remove_at(str, fstr_length(str) - endTrim, endTrim);
     }
-
-
 }
 
 
@@ -754,6 +789,10 @@ void fstr_insert_C(fstr *str, usize index, const chr *add) {
     }
 
     internal_fstr_insert(str, add, index, internal_C_string_length(add));
+}
+
+fstr **fstr_split(fstr *str) {
+
 }
 
 void fstr_pad(fstr *str, usize targetLength, chr pad, int8_t side) {
