@@ -84,6 +84,9 @@ chr chr_to_lower(chr a);
 
 chr chr_to_upper(chr a);
 
+
+void internal_replace_sub(fstr *str, const chr *buf, const usize len);
+
 #pragma endregion Character
 
 #pragma region String_Creation
@@ -235,7 +238,7 @@ void fstr_set_chr(fstr *str, usize index, chr c);
 /// \param str The string to be modified
 /// \param num_chars The count of char params to be passed
 /// \param ... Chars to be removed
-void fstr_remove_chr_varargs(fstr *str, u8 num_chars, ...);
+void fstr_remove_chr_varargs(fstr *str, uint8_t num_chars, ...);
 
 /// Makes the string lowercase
 /// \param a The string to modify

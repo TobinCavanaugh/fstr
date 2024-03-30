@@ -5,9 +5,8 @@
 int main() {
     fstr *str = fstr_from_C("56565566");
     fstr_println(str);
-
-    fstr_result num = fstr_index_of_C(str, "56");
-    printf("%llu\n", num.u_val);
+    internal_replace_sub(str, "56", 2);
+    fstr_println(str);
 }
 
 /*

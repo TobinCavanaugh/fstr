@@ -176,8 +176,15 @@ fstr_result fstr_index_of(const fstr *str, const fstr *sub) {
     return internal_index_of_sub(str, sub->data, fstr_length(sub));
 }
 
-void internal_replace_sub(fstr *str, chr *buf, usize len) {
+void internal_replace_sub(fstr *str, const char *buf, const uintptr_t len) {
+    fstr *alt = str;
 
+    usize i = 0;
+
+    fstr tmp = {0, 0, alt->data};
+    internal_fstr_set_end(&tmp, fstr_length(str));
+
+    internal_index_of_sub(&alt, buf, len);
 }
 
 
