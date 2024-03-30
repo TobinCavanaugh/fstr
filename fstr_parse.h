@@ -13,4 +13,6 @@
 
 fstr_result fstr_to_i64(const fstr *str);
 
+fstr_result fstr_to_double(const fstr *str);
+
 #endif //FSTR_FSTR_PARSE_H

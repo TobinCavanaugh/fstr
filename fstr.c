@@ -121,51 +121,62 @@ void fstr_remove_at(fstr *str, const usize index, const usize length) {
     //TODO Reimplement in memcpy could be much quicker than iteration on BIG strings
     usize i, subIndex = 0;
     for (i = 0; i < startLen; i++) {
-        //if (i != index) {
+        //if (i != i_val) {
         if (i < index || i >= (index + length)) {
             str->data[subIndex] = str->data[i];
             subIndex++;
         }
     }
 
-//    memcpy_internal(str->data + (index), str->data + index, (startLen - index) * sizeof(chr));
+//    memcpy_internal(str->data + (i_val), str->data + i_val, (startLen - i_val) * sizeof(chr));
 
     internal_fstr_set_end(str, subIndex);
 }
 
-
-fstr_result internal_index_of_sub(fstr *str, char *buf, uintptr_t len) {
+/// Returns the index of a substring within the string. Returns to fstr_result.u_val
+/// \param str The string to text.
+/// \param buf The buffer to check for
+/// \param len The length of the buffer
+/// \return The result with the index in u_val
+fstr_result internal_index_of_sub(const fstr *str, char *buf, uintptr_t len) {
     usize strlen = fstr_length(str);
     usize i;
     for (i = 0; i < strlen; i++) {
-        strlen = fstr_length(str);
-
-        u8 success = 0;
+        u8 success = 1;
         usize sub;
         for (sub = 0; sub < len; sub++) {
-            //If substring index is out of bounds
+            //If substring i_val is out of bounds
             if (i + sub >= strlen) {
+                success = 0;
                 break;
             }
 
             //If the data doesnt match, break the loop
             if (str->data[i + sub] != buf[sub]) {
+                success = 0;
                 break;
             }
+        }
 
-            if (sub == len - 1) {
-                return (fstr_result) {1, i};
-            }
+        if (success) {
+            return (fstr_result) {1, i};
         }
     }
 
     return FAILURE;
 }
 
-void internal_replace_sub(fstr *str, chr *buf, usize len) {
-    printf("NOT IMPLEMENTED!!!!!!!!!!!!1");
-    return;
 
+fstr_result fstr_index_of_C(const fstr *str, char *sub) {
+    return internal_index_of_sub(str, sub, internal_C_string_length(sub));
+}
+
+
+fstr_result fstr_index_of(const fstr *str, const fstr *sub) {
+    return internal_index_of_sub(str, sub->data, fstr_length(sub));
+}
+
+void internal_replace_sub(fstr *str, chr *buf, usize len) {
 
 }
 
@@ -232,7 +243,7 @@ void fstr_append_chr(fstr *str, const chr c) {
     internal_fstr_set_end(str, len + 1);
 }
 
-void fstr_remove_chr_varargs(fstr *str, int num_chars, ...) {
+void fstr_remove_chr_varargs(fstr *str, u8 num_chars, ...) {
     va_list args;
     va_start(args, num_chars);
 
@@ -544,7 +555,7 @@ fstr *fstr_from_format_C(const char *format, ...) {
     va_start(args, format);
 
     //Calculate the size of the buffer
-    int size = _vscprintf(format, args);
+    usize size = _vscprintf(format, args);
 
     //Create the new string, we divide by sizeof chr in case chars are bigger
     //TODO This divide could be wrong
@@ -634,8 +645,8 @@ void fstr_trim(fstr *str, int8_t side) {
     //If we are trimming the left side
     if (side <= 0) {
 
-        int startTrim = 0;
-        int i;
+        usize startTrim = 0;
+        usize i;
 
         //Go through the string, keep count of any trim characters, if theres a non trim character then we exit and cut that off
         for (i = 0; i < fstr_length(str); i++) {
@@ -650,8 +661,8 @@ void fstr_trim(fstr *str, int8_t side) {
         fstr_remove_at(str, 0, startTrim);
     }
     if (side >= 0) {
-        int endTrim = 0;
-        int i;
+        usize endTrim = 0;
+        usize i;
         //See (side <= 0)
         for (i = fstr_length(str) - 1; i >= 0; i--) {
             chr c = str->data[i];
@@ -793,12 +804,12 @@ void internal_fstr_insert(fstr *str, const char *add, usize index, usize addLen)
     //Write the right most data into a temporary buffer
     memcpy_internal(tmp, str->data + index, rightBuffSize);
 
-    //Copy the right most data and place it at its ideal location, leaving some remaining data after index with size of add
+    //Copy the right most data and place it at its ideal location, leaving some remaining data after i_val with size of add
     memcpy_internal(str->data + (index + addLen), tmp, rightBuffSize);
 
     free(tmp);
 
-    //Replace the data after index with the size of add with the actual add data
+    //Replace the data after i_val with the size of add with the actual add data
     memcpy_internal(str->data + index, add, addLen * sizeof(chr));
 
     internal_fstr_set_end(str, finalLen);

@@ -3,11 +3,11 @@
 #include "fstr_parse.h"
 
 int main() {
+    fstr *str = fstr_from_C("56565566");
+    fstr_println(str);
 
-    fstr * str = fstr_from_C("2345679");
-    fstr_result num = fstr_to_i64(str);
-    printf("%lld", num.value);
-
+    fstr_result num = fstr_index_of_C(str, "56");
+    printf("%llu\n", num.u_val);
 }
 
 /*

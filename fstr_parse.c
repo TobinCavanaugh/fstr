@@ -68,6 +68,14 @@ u64 to_u64(i64 val) {
     return (u64) val;
 }
 
+
+fstr_result fstr_to_double(const fstr *str) {
+    fstr_result res = fstr_to_i64(str);
+    i64 tmp = res.i_val;
+    res.f_val = (float) tmp;
+    return res;
+}
+
 fstr_result fstr_to_i64(const fstr *str) {
 
     //Make a copy of the string
@@ -87,7 +95,7 @@ fstr_result fstr_to_i64(const fstr *str) {
 
     //Check if the string starts with a negative sign, if so we want to skip this chr
     if (is_neg(cop->data[0])) {
-        //Set the starting index to one and the sign to -1
+        //Set the starting i_val to one and the sign to -1
         start = 1;
         sign = -1;
     }
@@ -120,7 +128,7 @@ fstr_result fstr_to_i64(const fstr *str) {
         final_val += digit;
     }
 
-    result.value = final_val * sign;
+    result.i_val = final_val * sign;
 
     free(cop);
     return result;

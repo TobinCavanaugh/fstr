@@ -38,11 +38,19 @@ typedef enum : uint8_t {
     STR_ERR_INCORRECT_CHAR_POINTER = 5
 } STR_ERR;
 
+//This struct is used to handle the results of functions that might return different things.
+//In particular, it has the possibility of returning a boolean telling you if the function succeeded or not.
 typedef struct {
     uint8_t success;
-    usize value;
-} fstr_result;
 
+    //This union defines either an integer value or a float value.
+    //Most functions will return an i_val unless specified.
+    union {
+        usize i_val;
+        uint64_t u_val;
+        double f_val;
+    };
+} fstr_result;
 
 ///The main fstr struct, this is a new string type that uses a pointer to the end of the char array to control for length.
 typedef struct {
@@ -79,9 +87,6 @@ chr chr_to_upper(chr a);
 #pragma endregion Character
 
 #pragma region String_Creation
-
-
-fstr_result internal_index_of_sub(fstr *str, char *buf, uintptr_t len);
 
 /// Creates an fstr from a pre-existing C string
 /// \param buf
@@ -174,13 +179,25 @@ void fstr_print(const fstr *str);
 
 #pragma region String_Modification
 
+/// Returns the index of the first instances of the substring in the string. Index is stored in fstr_result.u_val
+/// \param str The string to look through
+/// \param sub The substring to check for
+/// \return The fstr_result, index is stored in u_val.
+fstr_result fstr_index_of_C(const fstr *str, chr *sub);
+
+/// Returns the index of the first instances of the substring in the string. Index is stored in fstr_result.u_val
+/// \param str The string to look through
+/// \param sub The substring to check for
+/// \return The fstr_result, index is stored in u_val.
+fstr_result fstr_index_of(const fstr *str, const fstr *sub);
+
 /// Clear all the string characters
 /// \param str The string to clear
 void fstr_clear(fstr *str);
 
-/// Removes the character at the particular index
+/// Removes the character at the particular i_val
 /// \param str The string to be modified
-/// \param index The index of the char to be removed, 0 based. Will not crash on OOB
+/// \param index The i_val of the char to be removed, 0 based. Will not crash on OOB
 void fstr_remove_at(fstr *str, const usize index, const usize length);
 
 /// Reverses the string
@@ -208,9 +225,9 @@ void fstr_replace_chr(fstr *str, const chr from, const chr to);
 /// \param c The chr to be removed
 void fstr_remove_chr(fstr *str, const chr c);
 
-/// Replaces the character at a particular index, you can also do direct indexing. Does do OOB checking.
-/// \param str The string to index
-/// \param index The index of the character, 0 being the start of the string
+/// Replaces the character at a particular i_val, you can also do direct indexing. Does do OOB checking.
+/// \param str The string to i_val
+/// \param index The i_val of the character, 0 being the start of the string
 /// \param c The character to be assigned
 void fstr_set_chr(fstr *str, usize index, chr c);
 
@@ -218,7 +235,7 @@ void fstr_set_chr(fstr *str, usize index, chr c);
 /// \param str The string to be modified
 /// \param num_chars The count of char params to be passed
 /// \param ... Chars to be removed
-void fstr_remove_chr_varargs(fstr *str, int num_chars, ...);
+void fstr_remove_chr_varargs(fstr *str, u8 num_chars, ...);
 
 /// Makes the string lowercase
 /// \param a The string to modify
@@ -238,7 +255,7 @@ void fstr_invertcase(fstr *a);
 
 /// Returns an fstr substring of the string, starting at start and with a length
 /// \param str The string to be used
-/// \param start The start index of the substirng
+/// \param start The start i_val of the substirng
 /// \param length The length of the substirng
 /// \return The substring
 fstr *fstr_substr(fstr *str, usize start, usize length);
@@ -255,10 +272,10 @@ usize fstr_count_C(const fstr *str, const chr *sub);
 /// \return The count of substringsF
 usize fstr_count(const fstr *str, const fstr *sub);
 
-/// Returns 1 if the character was found, 0 if it wasnt, and sets the index to the index of the character
+/// Returns 1 if the character was found, 0 if it wasnt, and sets the i_val to the i_val of the character
 /// \param str The string to search
 /// \param c The character to compare
-/// \return The fstr_result with the value being the index
+/// \return The fstr_result with the value being the i_val
 fstr_result fstr_index_of_chr(fstr *str, char c);
 
 /// Gets the count of the chr value in the fstr
