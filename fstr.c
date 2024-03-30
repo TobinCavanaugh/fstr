@@ -13,6 +13,17 @@
 #define u8 uint8_t
 #define FAILURE (fstr_result) {0}
 
+
+//Internal function prototypes
+#pragma region PROTOTYPES
+
+void internal_fstr_insert(fstr *str, uintptr_t index, const char *add, uintptr_t addLen);
+
+void memcpy_internal(void *destination, const void *src, usize size);
+
+
+#pragma endregion PROTOTYPES
+
 /// Derived from GCC implementation, made more readable
 /// https://github.com/gcc-mirror/gcc/blob/master/libgcc/memcpy.c
 /// \param destination Where the memory is going to be put
@@ -121,14 +132,14 @@ void fstr_remove_at(fstr *str, const usize index, const usize length) {
     //TODO Reimplement in memcpy could be much quicker than iteration on BIG strings
     usize i, subIndex = 0;
     for (i = 0; i < startLen; i++) {
-        //if (i != i_val) {
+        //if (i != u_val) {
         if (i < index || i >= (index + length)) {
             str->data[subIndex] = str->data[i];
             subIndex++;
         }
     }
 
-//    memcpy_internal(str->data + (i_val), str->data + i_val, (startLen - i_val) * sizeof(chr));
+//    memcpy_internal(str->data + (u_val), str->data + u_val, (startLen - u_val) * sizeof(chr));
 
     internal_fstr_set_end(str, subIndex);
 }
@@ -138,28 +149,37 @@ void fstr_remove_at(fstr *str, const usize index, const usize length) {
 /// \param buf The buffer to check for
 /// \param len The length of the buffer
 /// \return The result with the index in u_val
-fstr_result internal_index_of_sub(const fstr *str, char *buf, uintptr_t len) {
+fstr_result internal_index_of_sub(const fstr *str, const char *buf, const uintptr_t len) {
     usize strlen = fstr_length(str);
+
+    if (len > strlen) {
+        return FAILURE;
+    }
+
     usize i;
     for (i = 0; i < strlen; i++) {
         u8 success = 1;
-        usize sub;
-        for (sub = 0; sub < len; sub++) {
-            //If substring i_val is out of bounds
-            if (i + sub >= strlen) {
+        usize k;
+
+        //Checking if substring off this char is legit
+        for (k = 0; k < len; k++) {
+            //If substring u_val is out of bounds
+            if (i + k >= strlen) {
                 success = 0;
                 break;
             }
 
             //If the data doesnt match, break the loop
-            if (str->data[i + sub] != buf[sub]) {
+            if (str->data[i + k] != buf[k]) {
                 success = 0;
                 break;
             }
         }
 
         if (success) {
-            return (fstr_result) {1, i};
+            fstr_result res = (fstr_result) {1};
+            res.u_val = i;
+            return res;
         }
     }
 
@@ -176,15 +196,78 @@ fstr_result fstr_index_of(const fstr *str, const fstr *sub) {
     return internal_index_of_sub(str, sub->data, fstr_length(sub));
 }
 
-void internal_replace_sub(fstr *str, const char *buf, const uintptr_t len) {
-    fstr *alt = str;
 
-    usize i = 0;
+/// Takes a slice of the internal string with the data pointing to the original sliced string. <br/>
+/// THIS MEANS THAT ANY CHANGES TO THIS STRINGS DATA WILL AFFECT THE SLICED STRING
+/// \param str The string to slice
+/// \param start The starting index
+/// \param length The length of the slice to take
+/// \return The slice which contains a pointer to the strs data
+fstr internal_slice(fstr *str, uintptr_t start, uintptr_t length) {
+    fstr res = (fstr) {0};
+    res.data = str->data + start;
+    res.end = (usize) (str->data + start + length);
+    return res;
+}
 
-    fstr tmp = {0, 0, alt->data};
-    internal_fstr_set_end(&tmp, fstr_length(str));
+/// Replaces any instances of oldBuf with newBuf
+/// \param str The string to have contents replaced
+/// \param oldBuf The old buffer to look for
+/// \param oldLen The length of the old buffer
+/// \param newBuf The new buffer to replace the old
+/// \param newLen The length of the new buffer
+void internal_replace_sub(fstr *str,
+                          const chr *oldBuf, const usize oldLen,
+                          const chr *newBuf, const usize newLen) {
+    //Make a copy of our string, the data points to the same location as our
+    //actual str data location
+    fstr slice = *str;
 
-    internal_index_of_sub(&alt, buf, len);
+    usize offset = 0;
+
+    usize removed = 0;
+
+    //Iterate our string
+    u8 contains = 1;
+    while (contains) {
+        //Get the index of our substring (if it exists)
+        fstr_result res = internal_index_of_sub(&slice, oldBuf, oldLen);
+        contains = res.success;
+        usize index = res.u_val;
+
+        offset = as_ptr(slice.data) - as_ptr(str->data);
+
+        //If we contain our substring
+        if (contains) {
+
+            //Remove the substring and replace it
+            fstr_remove_at(str, index + offset, oldLen);
+            internal_fstr_insert(str, index + offset, newBuf, newLen);
+
+            removed++;
+
+            //Update the end of our slice
+            slice.data = str->data + (removed * newLen);
+            slice.end = str->end;
+
+            //Do a check to see if we are out of string bounds
+            if (slice.data > slice.end) {
+                contains = 0;
+            }
+        }
+    }
+}
+
+void fstr_replace_C(const fstr *str, const chr *oldBuf, const chr *newBuf) {
+    internal_replace_sub(str,
+                         oldBuf, internal_C_string_length(oldBuf),
+                         newBuf, internal_C_string_length(newBuf));
+}
+
+void fstr_replace(const fstr *str, const fstr *oldBuf, const fstr *newBuf) {
+    internal_replace_sub(str,
+                         oldBuf->data, fstr_length(oldBuf),
+                         newBuf->data, fstr_length(newBuf));
 }
 
 
@@ -431,6 +514,10 @@ void fstr_print_chrs_f(const fstr *str, const chr *format) {
 }
 
 void fstr_print(const fstr *str) {
+    if(str == NULL){
+        return;
+    }
+
     if (USING_CHAR) {
         usize len = fstr_length(str);
         fwrite(str->data, sizeof(chr), len, stdout);
@@ -442,7 +529,12 @@ void fstr_print(const fstr *str) {
 
 void fstr_println(const fstr *str) {
     fstr_print(str);
-    printf("\n");
+
+    if(USING_CHAR){
+        fwrite("\n", sizeof(chr), 1, stdout);
+    } else if(USING_WCHAR) {
+        wprintf(L"\n");
+    }
 }
 
 void fstr_print_hex(const fstr *str) {
@@ -778,7 +870,7 @@ void fstr_clear(fstr *str) {
 /// \param add
 /// \param index
 /// \param addLen
-void internal_fstr_insert(fstr *str, const char *add, usize index, usize addLen) {
+void internal_fstr_insert(fstr *str, uintptr_t index, const char *add, uintptr_t addLen) {
 
     usize startLen = fstr_length(str);
     usize finalLen = startLen + addLen;
@@ -811,12 +903,12 @@ void internal_fstr_insert(fstr *str, const char *add, usize index, usize addLen)
     //Write the right most data into a temporary buffer
     memcpy_internal(tmp, str->data + index, rightBuffSize);
 
-    //Copy the right most data and place it at its ideal location, leaving some remaining data after i_val with size of add
+    //Copy the right most data and place it at its ideal location, leaving some remaining data after u_val with size of add
     memcpy_internal(str->data + (index + addLen), tmp, rightBuffSize);
 
     free(tmp);
 
-    //Replace the data after i_val with the size of add with the actual add data
+    //Replace the data after u_val with the size of add with the actual add data
     memcpy_internal(str->data + index, add, addLen * sizeof(chr));
 
     internal_fstr_set_end(str, finalLen);
@@ -829,7 +921,7 @@ void fstr_insert(fstr *str, usize index, const fstr *add) {
         return;
     }
 
-    internal_fstr_insert(str, add->data, index, fstr_length(add));
+    internal_fstr_insert(str, index, add->data, fstr_length(add));
 }
 
 void fstr_insert_C(fstr *str, usize index, const chr *add) {
@@ -838,7 +930,7 @@ void fstr_insert_C(fstr *str, usize index, const chr *add) {
         return;
     }
 
-    internal_fstr_insert(str, add, index, internal_C_string_length(add));
+    internal_fstr_insert(str, index, add, internal_C_string_length(add));
 }
 
 fstr **fstr_split(fstr *str) {

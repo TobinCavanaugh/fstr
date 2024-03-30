@@ -71,7 +71,7 @@ u64 to_u64(i64 val) {
 
 fstr_result fstr_to_double(const fstr *str) {
     fstr_result res = fstr_to_i64(str);
-    i64 tmp = res.i_val;
+    i64 tmp = (i64) res.u_val;
     res.f_val = (float) tmp;
     return res;
 }
@@ -95,20 +95,20 @@ fstr_result fstr_to_i64(const fstr *str) {
 
     //Check if the string starts with a negative sign, if so we want to skip this chr
     if (is_neg(cop->data[0])) {
-        //Set the starting i_val to one and the sign to -1
+        //Set the starting u_val to one and the sign to -1
         start = 1;
         sign = -1;
     }
 
     i64 final_val = 0;
 
-    register usize index;
 
     fstr_result result = {1, 0};
 
-    for (index = start; index < len; index++) {
+    usize i;
+    for (i = start; i < len; i++) {
 
-        char c = cop->data[index];
+        char c = cop->data[i];
 
         //If its not a digit we want to quit, we also set outValue just for the sake of getting what number has been made so far
         if (!is_digit(c)) {
@@ -128,7 +128,7 @@ fstr_result fstr_to_i64(const fstr *str) {
         final_val += digit;
     }
 
-    result.i_val = final_val * sign;
+    result.u_val = final_val * sign;
 
     free(cop);
     return result;

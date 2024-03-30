@@ -44,10 +44,10 @@ typedef struct {
     uint8_t success;
 
     //This union defines either an integer value or a float value.
-    //Most functions will return an i_val unless specified.
+    //Most functions will return an u_val (index value) unless specified.
     union {
-        usize i_val;
-        uint64_t u_val;
+        usize u_val;
+        int64_t i_val;
         double f_val;
     };
 } fstr_result;
@@ -85,7 +85,6 @@ chr chr_to_lower(chr a);
 chr chr_to_upper(chr a);
 
 
-void internal_replace_sub(fstr *str, const chr *buf, const usize len);
 
 #pragma endregion Character
 
@@ -182,25 +181,25 @@ void fstr_print(const fstr *str);
 
 #pragma region String_Modification
 
-/// Returns the index of the first instances of the substring in the string. Index is stored in fstr_result.u_val
+/// Returns the index of the first instances of the substring in the string. Index is stored in fstr_result.i_val
 /// \param str The string to look through
 /// \param sub The substring to check for
-/// \return The fstr_result, index is stored in u_val.
+/// \return The fstr_result, index is stored in i_val.
 fstr_result fstr_index_of_C(const fstr *str, chr *sub);
 
-/// Returns the index of the first instances of the substring in the string. Index is stored in fstr_result.u_val
+/// Returns the index of the first instances of the substring in the string. Index is stored in fstr_result.i_val
 /// \param str The string to look through
 /// \param sub The substring to check for
-/// \return The fstr_result, index is stored in u_val.
+/// \return The fstr_result, index is stored in i_val.
 fstr_result fstr_index_of(const fstr *str, const fstr *sub);
 
 /// Clear all the string characters
 /// \param str The string to clear
 void fstr_clear(fstr *str);
 
-/// Removes the character at the particular i_val
+/// Removes the character at the particular index
 /// \param str The string to be modified
-/// \param index The i_val of the char to be removed, 0 based. Will not crash on OOB
+/// \param index The index of the char to be removed, 0 based. Will not crash on OOB
 void fstr_remove_at(fstr *str, const usize index, const usize length);
 
 /// Reverses the string
@@ -228,9 +227,9 @@ void fstr_replace_chr(fstr *str, const chr from, const chr to);
 /// \param c The chr to be removed
 void fstr_remove_chr(fstr *str, const chr c);
 
-/// Replaces the character at a particular i_val, you can also do direct indexing. Does do OOB checking.
-/// \param str The string to i_val
-/// \param index The i_val of the character, 0 being the start of the string
+/// Replaces the character at a particular index, you can also do direct indexing. Does do OOB checking.
+/// \param str The string to replace
+/// \param index The index of the character, 0 being the start of the string
 /// \param c The character to be assigned
 void fstr_set_chr(fstr *str, usize index, chr c);
 
@@ -258,8 +257,8 @@ void fstr_invertcase(fstr *a);
 
 /// Returns an fstr substring of the string, starting at start and with a length
 /// \param str The string to be used
-/// \param start The start i_val of the substirng
-/// \param length The length of the substirng
+/// \param start The start index of the substring
+/// \param length The length of the substring
 /// \return The substring
 fstr *fstr_substr(fstr *str, usize start, usize length);
 
@@ -275,10 +274,10 @@ usize fstr_count_C(const fstr *str, const chr *sub);
 /// \return The count of substringsF
 usize fstr_count(const fstr *str, const fstr *sub);
 
-/// Returns 1 if the character was found, 0 if it wasnt, and sets the i_val to the i_val of the character
+/// returns an fstr result if the character was found. The value is in the u_val
 /// \param str The string to search
 /// \param c The character to compare
-/// \return The fstr_result with the value being the i_val
+/// \return The fstr_result with the value being the u_val
 fstr_result fstr_index_of_chr(fstr *str, char c);
 
 /// Gets the count of the chr value in the fstr
@@ -322,6 +321,18 @@ uint8_t fstr_equals(fstr *a, fstr *b);
 /// \param str The string to be modified
 /// \param side The side to trim, 0 for both sides, -1 for left, +1 for right
 void fstr_trim(fstr *str, int8_t side);
+
+/// Replaces any instances of oldBuf with newBuf
+/// \param str The string to be modified
+/// \param oldBuf The old buffer
+/// \param newBuf The new buffer
+void fstr_replace_C(const fstr *str, const chr *oldBuf, const chr *newBuf);
+
+/// Replaces any instances of oldBuf with newBuf
+/// \param str The string to be modified
+/// \param oldBuf The old buffer
+/// \param newBuf The new buffer
+void fstr_replace(const fstr *str, const fstr *oldBuf, const fstr *newBuf);
 
 #pragma endregion String_Utilities
 

@@ -1,18 +1,10 @@
 #include <stdio.h>
+#include <malloc.h>
 #include "fstr.h"
+#include "time.h"
+#include "sys/time.h"
 #include "fstr_parse.h"
 
-int main() {
-    fstr *str = fstr_from_C("56565566");
-    fstr_println(str);
-    internal_replace_sub(str, "56", 2);
-    fstr_println(str);
-}
-
-/*
-#define var __auto_type
-
-//TODO MEMORY ARENA MACROS, OVERRIDE MALLOC, IMPLY ENDING THING
 
 struct timeval start_stopwatch() {
     struct timeval tv = {0, 0};
@@ -30,4 +22,56 @@ double stop_stopwatch(struct timeval start_time) {
     return elapsed_time;
 }
 
- */
+usize fsize(FILE *fp) {
+    fseek(fp, 0, SEEK_END);
+    usize size = ftell(fp);
+    fseek(fp, 0, SEEK_SET);
+    return size;
+}
+
+void dofileread() {
+
+    FILE *f = fopen("C:\\Users\\tobin\\Documents\\big.txt", "r");
+    int64_t size = fsize(f);
+
+    fstr *str = fstr_from_length(size, ' ');
+
+    usize i = 0;
+    chr c;
+    while ((c = getc(f)) != EOF) {
+        str->data[i++] = c;
+    }
+
+    fclose(f);
+
+    __auto_type sw = start_stopwatch();
+    fstr_replace_C(str, "the", "---");
+//    fstr_result res = fstr_index_of_C(str, "The");
+
+
+    double time = stop_stopwatch(sw);
+
+//    printf("%d -=> %lld\n", res.success, res.u_val);
+    printf("%fms", time);
+}
+
+int main() {
+    {
+        fstr *str = fstr_from_C("the_the_the_the_the_the_the_the_the_the_the_the_the_the_the_the_the_the_the_the_");
+        fstr_println(str);
+        fstr_replace_C(str, "the", "_");
+        fstr_println(str);
+        fstr_free(str);
+    }
+    fstr_println(NULL);
+    {
+        fstr *str = fstr_from_C("___");
+        fstr_println(str);
+        fstr_replace_C(str, "___", "______");
+        fstr_println(str);
+    }
+    fstr_println(NULL);
+    {
+//        fstr * str = fstr_from_C()
+    }
+}
