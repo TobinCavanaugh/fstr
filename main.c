@@ -1,17 +1,17 @@
 #include <stdio.h>
+#include <time.h>
 #include "fstr.h"
 #include "fstr_parse.h"
-#include "stdint.h"
 
 int main() {
-    fstr *str = fstr_from_C(" 1234 ");
-    int64_t value = 0;
-    if (fstr_try_to_i64(str, &value)) {
-        printf("%lld", value);
-    } else {
-        printf("Failed to parse fstr: ");
-        fstr_print(str);
-    }
+    fstr * str = fstr_from_C("Low-level programming is good for the programmer's soul.");
+
+    fstr_println(str);
+
+    fstr_clear(str);
+    fstr_append_C(str, ":)");
+
+    fstr_println(str);
 }
 
 /*

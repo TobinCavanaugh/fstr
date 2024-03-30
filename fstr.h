@@ -64,6 +64,7 @@ typedef struct {
 //There will be NO ASCII extended case support, as it is not standardized
 #define chr_is_lower(a) (USING_CHAR && (a >= 97 && a <= 122)) || (USING_WCHAR && (iswlower(a)))
 #define chr_is_upper(a) (USING_CHAR && (a >= 65 && a <= 90)) || (USING_WCHAR && (iswupper(a)))
+#define chr_is_alpha(a) (chr_is_lower(a) || chr_is_upper(a))
 
 chr chr_to_lower(chr a);
 
@@ -136,10 +137,36 @@ void fstr_pad(fstr *str, usize targetLength, chr pad, int8_t side);
 
 #pragma endregion String_Append
 
+#pragma region Printing
+
+/// Prints the characters as hex codes separated by spaces
+/// \param str The string to be printed
+void fstr_print_hex(const fstr *str);
+
+/// Prints the string then a newline
+/// \param str The string to be printed
+void fstr_println(const fstr *str);
+
+/// Prints the chrs with a format applied to each character. This MUST include %c and cannot include any other % formatting.
+/// A good use for this is fstr_print_chrs_f(str, "%c,"); To comma separate the characters.
+/// \param str
+/// \param format
+void fstr_print_chrs_f(const fstr *str, const chr *format);
+
+/// Prints the string one character at a time
+/// \param str The string to be printed
+void fstr_print_chrs(const fstr *str);
+
+/// Prints the string at once by writing to the STDOUT
+/// \param str The string to be printed
+void fstr_print(const fstr *str);
+
+#pragma endregion Printing
+
 #pragma region String_Modification
 
 /// Clear all the string characters
-/// \param str
+/// \param str The string to clear
 void fstr_clear(fstr *str);
 
 /// Removes the character at the particular index
@@ -168,9 +195,9 @@ void fstr_remove_C(const fstr *str, const chr *buf);
 void fstr_replace_chr(fstr *str, const chr from, const chr to);
 
 /// Removes any instances of a character, rippling the string. fstr_remove_chr(str, "AABBCC", 'A') -> "BBCC"
-/// \param str The string to be removed from
-/// \param from The chr to be removed
-void fstr_remove_chr(fstr *str, const chr from);
+/// \param str The string to be removed c
+/// \param c The chr to be removed
+void fstr_remove_chr(fstr *str, const chr c);
 
 /// Replaces the character at a particular index, you can also do direct indexing. Does do OOB checking.
 /// \param str The string to index
@@ -217,7 +244,7 @@ usize fstr_count_C(const fstr *str, const chr *sub);
 /// \param str The string to search
 /// \param sub The substring to look for
 /// \return The count of substringsF
-usize fstr_count(const fstr * str, const fstr *sub);
+usize fstr_count(const fstr *str, const fstr *sub);
 
 /// Returns 1 if the character was found, 0 if it wasnt, and sets the index to the index of the character
 /// \param str The string to search
@@ -242,13 +269,6 @@ fstr *fstr_copy(const fstr *str);
 /// \return The char * buffer
 char *fstr_as_C_heap(const fstr *from);
 
-/// Prints the string one character at a time
-/// \param str The string to be printed
-void fstr_print_chrs(const fstr *str);
-
-/// Prints the string at once by writing to the STDOUT
-/// \param str The string to be printed
-void fstr_print(const fstr *str);
 
 /// Frees the fstr and its data
 /// \param str The string to free
@@ -270,19 +290,6 @@ uint8_t fstr_succeeded(fstr *str);
 /// \return 1 if it equals, 0 if its not equal
 uint8_t fstr_equals(fstr *a, fstr *b);
 
-/// Prints the characters as hex codes separated by spaces
-/// \param str The string to be printed
-void fstr_print_hex(const fstr *str);
-
-/// Prints the string then a newline
-/// \param str The string to be printed
-void fstr_println(const fstr *str);
-
-/// Prints the chrs with a format applied to each character. This MUST include %c and cannot include any other % formatting.
-/// A good use for this is fstr_print_chrs_f(str, "%d,"); To comma separate the characters.
-/// \param str
-/// \param format
-void fstr_print_chrs_f(const fstr *str, const chr *format);
 
 /// Trims a particular side of the fstr from all spaces, tabs, newlines, carriage returns, and the like.
 /// \param str The string to be modified

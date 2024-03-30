@@ -136,6 +136,7 @@ void fstr_remove_at(fstr *str, const usize index, const usize length) {
 //    for (int i = 0; i <)
 //}
 
+
 void internal_remove_buf(fstr *str, const char *removeBuf, const usize removeLen) {
     usize len = fstr_length(str);
     usize secondary = 0;
@@ -200,7 +201,6 @@ void fstr_append_chr(fstr *str, const chr c) {
 
 void fstr_remove_chr_varargs(fstr *str, int num_chars, ...) {
     va_list args;
-
     va_start(args, num_chars);
 
     usize i;
@@ -211,14 +211,14 @@ void fstr_remove_chr_varargs(fstr *str, int num_chars, ...) {
     va_end(args);
 }
 
-void fstr_remove_chr(fstr *str, const chr from) {
+void fstr_remove_chr(fstr *str, const chr c) {
     usize len = fstr_length(str);
     usize secondary = 0;
     usize primary;
 
-    //Iterate our string and place our non-from strings into our same string in order
+    //Iterate our string and place our non-c strings into our same string in order
     for (primary = 0; primary < len; primary++) {
-        if (str->data[primary] != from) {
+        if (str->data[primary] != c) {
             str->data[secondary] = str->data[primary];
             secondary++;
         }
@@ -267,7 +267,6 @@ usize fstr_count_chr(const fstr *str, const chr value) {
     }
     return count;
 }
-
 
 u8 fstr_index_of_chr(fstr *str, char c, usize *index) {
     usize i;
@@ -354,11 +353,11 @@ void fstr_free(fstr *str) {
     }
 }
 
-void internal_print_chr(const chr *format, const chr print) {
+void internal_print_chr(const chr *format, const chr printChr) {
     if (USING_WCHAR) {
-        wprintf(format, print);
+        wprintf(format, printChr);
     } else if (USING_CHAR) {
-        printf(format, print);
+        printf(format, printChr);
     }
 }
 
@@ -720,7 +719,7 @@ void fstr_reverse(fstr *str) {
 void fstr_clear(fstr *str) {
     free(str->data);
     str->data = calloc(1, sizeof(chr));
-    internal_fstr_set_end(str, 1);
+    internal_fstr_set_end(str, 0);
 }
 
 /// The internal string insert function
