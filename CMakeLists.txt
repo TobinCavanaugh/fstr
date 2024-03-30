@@ -4,7 +4,7 @@ project(fstr C)
 set(CMAKE_C_STANDARD 90)
 
 add_executable(fstr
-#        main.c
+        main.c
         fstr.c
         fstr_parse.c
         fstr_tests.c
@@ -15,6 +15,6 @@ add_executable(fstr
 #        examples/chr_is_alpha.c
 #        examples/chr_to_lower.c
 #        examples/chr_to_upper.c
-        examples/from_C.c
+#        examples/from_C.c
 
 )

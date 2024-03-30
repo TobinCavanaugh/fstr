@@ -11,6 +11,7 @@
 #define as_ptr(a) ((usize) (a))
 
 #define u8 uint8_t
+#define FAILURE (fstr_result) {0}
 
 /// Derived from GCC implementation, made more readable
 /// https://github.com/gcc-mirror/gcc/blob/master/libgcc/memcpy.c
@@ -132,9 +133,41 @@ void fstr_remove_at(fstr *str, const usize index, const usize length) {
     internal_fstr_set_end(str, subIndex);
 }
 
-//void internal_replace_sub(fstr *str, usize len, chr *buf) {
-//    for (int i = 0; i <)
-//}
+
+fstr_result internal_index_of_sub(fstr *str, char *buf, uintptr_t len) {
+    usize strlen = fstr_length(str);
+    usize i;
+    for (i = 0; i < strlen; i++) {
+        strlen = fstr_length(str);
+
+        u8 success = 0;
+        usize sub;
+        for (sub = 0; sub < len; sub++) {
+            //If substring index is out of bounds
+            if (i + sub >= strlen) {
+                break;
+            }
+
+            //If the data doesnt match, break the loop
+            if (str->data[i + sub] != buf[sub]) {
+                break;
+            }
+
+            if (sub == len - 1) {
+                return (fstr_result) {1, i};
+            }
+        }
+    }
+
+    return FAILURE;
+}
+
+void internal_replace_sub(fstr *str, chr *buf, usize len) {
+    printf("NOT IMPLEMENTED!!!!!!!!!!!!1");
+    return;
+
+
+}
 
 
 void internal_remove_buf(fstr *str, const char *removeBuf, const usize removeLen) {
@@ -268,18 +301,18 @@ usize fstr_count_chr(const fstr *str, const chr value) {
     return count;
 }
 
-u8 fstr_index_of_chr(fstr *str, char c, usize *index) {
+
+fstr_result fstr_index_of_chr(fstr *str, char c) {
     usize i;
     usize len = fstr_length(str);
 
     for (i = 0; i < len; i++) {
         if (str->data[i] == c) {
-            *index = i;
-            return 1;
+            return (fstr_result) {1, i};
         }
     }
 
-    return 0;
+    return FAILURE;
 }
 
 fstr *fstr_substr(fstr *str, usize start, usize length) {

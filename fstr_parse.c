@@ -26,6 +26,8 @@
 
 #define bool uint8_t
 
+#define FAILURE (fstr_result) {0}
+
 bool is_alpha(chr c) {
     if (USING_CHAR) {
         return (chr_is_lower(c) || chr_is_upper(c));
@@ -66,7 +68,7 @@ u64 to_u64(i64 val) {
     return (u64) val;
 }
 
-u8 fstr_try_to_i64(const fstr *str, int64_t *outValue) {
+fstr_result fstr_to_i64(const fstr *str) {
 
     //Make a copy of the string
     fstr *cop = fstr_copy(str);
@@ -77,10 +79,10 @@ u8 fstr_try_to_i64(const fstr *str, int64_t *outValue) {
     usize len = fstr_length(cop);
 
     if (len == 0) {
-        return 0;
+        return FAILURE;
     }
 
-    signed char sign = 1;
+    i8 sign = 1;
     usize start = 0;
 
     //Check if the string starts with a negative sign, if so we want to skip this chr
@@ -92,7 +94,9 @@ u8 fstr_try_to_i64(const fstr *str, int64_t *outValue) {
 
     i64 final_val = 0;
 
-    usize index;
+    register usize index;
+
+    fstr_result result = {1, 0};
 
     for (index = start; index < len; index++) {
 
@@ -100,7 +104,8 @@ u8 fstr_try_to_i64(const fstr *str, int64_t *outValue) {
 
         //If its not a digit we want to quit, we also set outValue just for the sake of getting what number has been made so far
         if (!is_digit(c)) {
-            goto FailureReturn;
+            result.success = 0;
+            break;
         }
 
         uint8_t digit = lookup_char(c);
@@ -108,46 +113,15 @@ u8 fstr_try_to_i64(const fstr *str, int64_t *outValue) {
         //If adding a new digit would cause an overflow, we just set it to the max
         if ((final_val * 10) + digit < 0) {
             final_val = INT64_MAX;
-            goto FailureReturn;
+            result.success = 0;
         }
         //Increment the final value by the current power (think of digit position) times the current character as a digit
         final_val *= 10;
         final_val += digit;
     }
 
-    //DefaultReturn
-    {
-        //Set the outValue value
-        *outValue = final_val * sign;
-        free(cop);
-        return 1;
-    }
+    result.value = final_val * sign;
 
-    //An alternate failure path where the value is still assigned but we return 0
-    FailureReturn:
-    {
-        *outValue = final_val * sign;
-        free(cop);
-        return 0;
-    }
-}
-
-int64_t fstr_to_i64(const fstr *str) {
-    int64_t value = 0;
-    fstr_try_to_i64(str, &value);
-    return value;
-}
-
-
-bool fstr_try_to_u64(const fstr *str, uint64_t *outValue) {
-    i64 value = 0;
-    u8 ret = fstr_try_to_i64(str, &value);
-    *outValue = to_u64(value);
-    return ret;
-}
-
-u64 fstr_to_u64(const fstr *str) {
-    u64 val = 0;
-    fstr_try_to_u64(str, &val);
-    return val;
+    free(cop);
+    return result;
 }

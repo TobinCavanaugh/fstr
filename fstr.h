@@ -38,6 +38,12 @@ typedef enum : uint8_t {
     STR_ERR_INCORRECT_CHAR_POINTER = 5
 } STR_ERR;
 
+typedef struct {
+    uint8_t success;
+    usize value;
+} fstr_result;
+
+
 ///The main fstr struct, this is a new string type that uses a pointer to the end of the char array to control for length.
 typedef struct {
     //The address of the last character in our string, inclusive.
@@ -73,6 +79,9 @@ chr chr_to_upper(chr a);
 #pragma endregion Character
 
 #pragma region String_Creation
+
+
+fstr_result internal_index_of_sub(fstr *str, char *buf, uintptr_t len);
 
 /// Creates an fstr from a pre-existing C string
 /// \param buf
@@ -249,9 +258,8 @@ usize fstr_count(const fstr *str, const fstr *sub);
 /// Returns 1 if the character was found, 0 if it wasnt, and sets the index to the index of the character
 /// \param str The string to search
 /// \param c The character to compare
-/// \param index The pointer to an index value which can be set
-/// \return 1 if the character is found, 0 if it isn't
-uint8_t fstr_index_of_chr(fstr *str, chr c, usize *index);
+/// \return The fstr_result with the value being the index
+fstr_result fstr_index_of_chr(fstr *str, char c);
 
 /// Gets the count of the chr value in the fstr
 /// \param str The string to be checked
@@ -289,7 +297,6 @@ uint8_t fstr_succeeded(fstr *str);
 /// \param b The second string
 /// \return 1 if it equals, 0 if its not equal
 uint8_t fstr_equals(fstr *a, fstr *b);
-
 
 /// Trims a particular side of the fstr from all spaces, tabs, newlines, carriage returns, and the like.
 /// \param str The string to be modified
