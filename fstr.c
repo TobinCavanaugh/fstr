@@ -19,24 +19,59 @@
 
 void internal_fstr_insert(fstr *str, uintptr_t index, const char *add, uintptr_t addLen);
 
+void internal_remove_buf(fstr *str, const char *removeBuf, const usize removeLen);
+
 void memcpy_internal(void *destination, const void *src, usize size);
 
 
 #pragma endregion PROTOTYPES
 
-/// Derived from GCC implementation, made more readable
-/// https://github.com/gcc-mirror/gcc/blob/master/libgcc/memcpy.c
+typedef struct {
+    uint64_t _0, _1, _2, _3, _4, _5, _6, _7;
+} MEM_BLOCK_64B;
+
+typedef struct {
+    uint64_t _0, _1, _2, _3;
+} MEM_BLOCK_32B;
+
+/// Custom memcpy implementation using chunking along with basic iterative assignment
 /// \param destination Where the memory is going to be put
 /// \param src Where the memory is being read from
 /// \param size The size of the data to be copied
 void memcpy_internal(void *destination, const void *src, usize size) {
-    u8 *destStart = destination;
-    const char *readStart = src;
 
+    u8 *dest = destination;
+    const char *read = src;
+
+    //Copy 64 byte size chunks
+    {
+        usize chunkSize = sizeof(MEM_BLOCK_64B);
+
+        while (size >= chunkSize) {
+            *((MEM_BLOCK_64B *) dest) = *((MEM_BLOCK_64B *) read);
+            size -= chunkSize;
+            dest += chunkSize;
+            read += chunkSize;
+        }
+    }
+
+    //Copy 8 byte sized chunks
+    {
+        usize chunkSize = sizeof(uint64_t);
+
+        while (size >= chunkSize) {
+            *((uint64_t *) dest) = *((uint64_t *) read);
+            size -= chunkSize;
+            dest += chunkSize;
+            read += chunkSize;
+        }
+    }
+
+    //Copy singular bytes
     while (size--) {
-        *destStart = *readStart;
-        *readStart++;
-        *destStart++;
+        *dest = *read;
+        *read++;
+        *dest++;
     }
 }
 
@@ -116,7 +151,7 @@ void fstr_replace_chr(fstr *str, const chr from, const chr to) {
 }
 
 
-void fstr_remove_at(fstr *str, const usize index, const usize length) {
+void fstr_remove_at(fstr *str, const usize index, usize length) {
 
     usize startLen = fstr_length(str);
 
@@ -130,18 +165,26 @@ void fstr_remove_at(fstr *str, const usize index, const usize length) {
     }
 
     //TODO Reimplement in memcpy could be much quicker than iteration on BIG strings
-    usize i, subIndex = 0;
-    for (i = 0; i < startLen; i++) {
-        //if (i != u_val) {
-        if (i < index || i >= (index + length)) {
-            str->data[subIndex] = str->data[i];
-            subIndex++;
+//    usize i, k = 0;
+//    for (i = 0; i < startLen; i++) {
+//        if (i < index || i >= (index + length)) {
+//            str->data[k] = str->data[i];
+//            k++;
+//        }
+//    }
+
+
+    while (index + length > startLen) {
+        length--;
+
+        if (length == 0) {
+            str->error = STR_ERR_IndexOutOfBounds;
+            return;
         }
     }
 
-//    memcpy_internal(str->data + (u_val), str->data + u_val, (startLen - u_val) * sizeof(chr));
-
-    internal_fstr_set_end(str, subIndex);
+    memcpy_internal(&str->data[index], &str->data[index + length], length * sizeof(chr));
+    internal_fstr_set_end(str, startLen - length);
 }
 
 /// Returns the index of a substring within the string. Returns to fstr_result.u_val
@@ -219,6 +262,12 @@ fstr internal_slice(fstr *str, uintptr_t start, uintptr_t length) {
 void internal_replace_sub(fstr *str,
                           const chr *oldBuf, const usize oldLen,
                           const chr *newBuf, const usize newLen) {
+
+    if (newLen == 0) {
+        internal_remove_buf(str, oldBuf, oldLen);
+        return;
+    }
+
     //Make a copy of our string, the data points to the same location as our
     //actual str data location
     fstr slice = *str;
@@ -230,15 +279,17 @@ void internal_replace_sub(fstr *str,
     //Iterate our string
     u8 contains = 1;
     while (contains) {
+
         //Get the index of our substring (if it exists)
         fstr_result res = internal_index_of_sub(&slice, oldBuf, oldLen);
         contains = res.success;
         usize index = res.u_val;
 
-        offset = as_ptr(slice.data) - as_ptr(str->data);
-
         //If we contain our substring
         if (contains) {
+
+            //Get the distance between our slice start and our string start as the offset
+            offset = (as_ptr(slice.data) - as_ptr(str->data));
 
             //Remove the substring and replace it
             fstr_remove_at(str, index + offset, oldLen);
@@ -514,7 +565,7 @@ void fstr_print_chrs_f(const fstr *str, const chr *format) {
 }
 
 void fstr_print(const fstr *str) {
-    if(str == NULL){
+    if (str == NULL) {
         return;
     }
 
@@ -530,9 +581,9 @@ void fstr_print(const fstr *str) {
 void fstr_println(const fstr *str) {
     fstr_print(str);
 
-    if(USING_CHAR){
-        fwrite("\n", sizeof(chr), 1, stdout);
-    } else if(USING_WCHAR) {
+    if (USING_CHAR) {
+        fwrite("\n", sizeof(chr), 2, stdout);
+    } else if (USING_WCHAR) {
         wprintf(L"\n");
     }
 }
