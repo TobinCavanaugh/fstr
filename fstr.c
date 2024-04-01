@@ -154,6 +154,7 @@ void fstr_replace_chr(fstr *str, const chr from, const chr to) {
 void fstr_remove_at(fstr *str, const usize index, usize length) {
 
     usize startLen = fstr_length(str);
+    usize startPtr = as_ptr(str->data);
 
     if (startLen == 0) {
         return;
@@ -181,11 +182,8 @@ void fstr_remove_at(fstr *str, const usize index, usize length) {
         }
     }
 
-    //TODO Proper memcpy solution that isnt broken as shiet
-//    memcpy_internal(&str->data[index], &str->data[index + length], length * sizeof(chr));
-//    internal_fstr_set_end(str, startLen - length);
+    str->data = realloc(str->data, k * sizeof(chr));
     internal_fstr_set_end(str, k);
-    str->data = realloc(str->data, (startLen - length) * sizeof(chr));
 }
 
 /// Returns the index of a substring within the string. Returns to fstr_result.u_val
@@ -269,33 +267,44 @@ void internal_replace_sub(fstr *str,
         return;
     }
 
+    //Make a copy of our string, the data points to the same location as our
+    //actual str data location
     fstr slice = *str;
 
-    usize removedCounter = 0;
+    usize offset = 0;
+
+    usize removed = 0;
 
     //Iterate our string
-    while (1) {
-        fstr_result subRes = internal_index_of_sub(&slice, oldBuf, oldLen);
-        fstr_result strRes = internal_index_of_sub(str, oldBuf, oldLen);
+    u8 contains = 1;
+    while (contains) {
 
-        if (!strRes.success) {
-            break;
+        //Get the index of our substring (if it exists)
+        fstr_result res = internal_index_of_sub(&slice, oldBuf, oldLen);
+        contains = res.success;
+        usize index = res.u_val;
+
+        //If we contain our substring
+        if (contains) {
+
+            //Get the distance between our slice start and our string start as the offset
+            offset = (as_ptr(slice.data) - as_ptr(str->data));
+
+            //Remove the substring and replace it
+            fstr_remove_at(str, index + offset, oldLen);
+            internal_fstr_insert(str, index + offset, newBuf, newLen);
+
+            removed++;
+
+            //Update the end of our slice
+            slice.data = str->data + (removed * newLen);
+            slice.end = str->end;
+
+            //Do a check to see if we are out of string bounds
+            if (slice.data > slice.end) {
+                contains = 0;
+            }
         }
-
-        //The index within the slice
-        usize sliceIndex = subRes.u_val;
-        usize strIndex = strRes.u_val;
-
-        //Remove the oldbuf at the index
-        fstr_remove_at(str, strIndex, oldLen);
-
-        //Insert the newbuf at the index
-        //Update the slice start to be after the newbuf
-//        slice.data = str->data + strIndex + oldLen;
-
-        //Set the slice end to the end of the str
-        slice.error = str->end;
-
     }
 }
 
