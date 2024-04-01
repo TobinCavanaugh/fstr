@@ -85,11 +85,7 @@ chr chr_to_lower(chr a);
 chr chr_to_upper(chr a);
 
 
-
-
-
 void memcpy_internal(void *destination, const void *src, usize size);
-
 
 
 #pragma endregion Character
@@ -322,6 +318,12 @@ uint8_t fstr_succeeded(fstr *str);
 /// \param b The second string
 /// \return 1 if it equals, 0 if its not equal
 uint8_t fstr_equals(fstr *a, fstr *b);
+
+/// If the a strings contents equals the b C string contents
+/// \param a The first string
+/// \param b The second string
+/// \return 1 if it equals, 0 if its not equal
+uint8_t fstr_equals_C(fstr *a, chr *b);
 
 /// Trims a particular side of the fstr from all spaces, tabs, newlines, carriage returns, and the like.
 /// \param str The string to be modified

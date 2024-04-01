@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <wchar.h>
+#include <emmintrin.h>
 
 #define as_ptr(a) ((usize) (a))
 
@@ -26,13 +27,15 @@ void memcpy_internal(void *destination, const void *src, usize size);
 
 #pragma endregion PROTOTYPES
 
-typedef struct {
-    uint64_t _0, _1, _2, _3, _4, _5, _6, _7;
-} MEM_BLOCK_64B;
 
 typedef struct {
     uint64_t _0, _1, _2, _3;
 } MEM_BLOCK_32B;
+
+typedef struct {
+    MEM_BLOCK_32B _0, _1;
+} MEM_BLOCK_64B;
+
 
 /// Custom memcpy implementation using chunking along with basic iterative assignment
 /// \param destination Where the memory is going to be put
@@ -40,8 +43,18 @@ typedef struct {
 /// \param size The size of the data to be copied
 void memcpy_internal(void *destination, const void *src, usize size) {
 
+    if (size == 0) {
+        return;
+    }
+
     u8 *dest = destination;
     const char *read = src;
+
+    //For future adventurers:
+    //With minimal testing i found very diminishing returns (if not worse
+    // performance) with any chunk size greater than 64. According to chatgpt
+    // most cpus only support up to 512b aka 64B operations for SIMD. Because
+    // of this i don't feel any need to make large sizes available.
 
     //Copy 64 byte size chunks
     {
@@ -49,6 +62,19 @@ void memcpy_internal(void *destination, const void *src, usize size) {
 
         while (size >= chunkSize) {
             *((MEM_BLOCK_64B *) dest) = *((MEM_BLOCK_64B *) read);
+
+            size -= chunkSize;
+            dest += chunkSize;
+            read += chunkSize;
+        }
+    }
+
+    //Copy 32 byte size chunks
+    {
+        usize chunkSize = sizeof(MEM_BLOCK_32B);
+
+        while (size >= chunkSize) {
+            *((MEM_BLOCK_32B *) dest) = *((MEM_BLOCK_32B *) read);
             size -= chunkSize;
             dest += chunkSize;
             read += chunkSize;
@@ -75,17 +101,61 @@ void memcpy_internal(void *destination, const void *src, usize size) {
     }
 }
 
+void internal_memmove(void *destination, void *source, size_t len) {
+    //Pointer to our destination
+    char *dest = destination;
+
+    //Pointer to our source
+    char *src = source;
+
+    //If our destination is to the left of our source, i.e. no chance of overlap
+    if (dest < src) {
+        memcpy_internal(destination, source, len);
+    } else {
+        //Get the last source and destination characters
+        char *lastSrc = src + (len - 1);
+        char *lastDest = dest + (len - 1);
+
+        //Batch with 2 bytes, we could definitely do more, see internal_memcpy
+        while (len >= sizeof(uint16_t)) {
+            char *chunkSrc = src + (len - sizeof(uint16_t));
+            char *chunkDest = src + (len - sizeof(uint16_t));
+
+            *((uint16_t *) chunkDest) = *((uint16_t *) chunkSrc);
+
+            len -= sizeof(uint16_t);
+        }
+
+        //Go through our whole length
+        while (len--) {
+            //Set the corresponding src character in the dest
+            *lastDest = *lastSrc;
+            *lastDest--;
+            *lastSrc--;
+        }
+    }
+}
+
 u8 memeq_internal(const void *a, const void *b, uintptr_t size) {
-    usize counter = 0;
 
     const u8 *aa = a;
     const u8 *bb = b;
 
-    while (counter < size) {
-        if (aa[counter] != bb[counter]) {
+    usize i = 0;
+
+    while (i + sizeof(uint16_t) < size) {
+        //Compare the two bytes
+        if (*(uint16_t *) (aa + i) != *(uint16_t *) (bb + i)) {
             return 0;
         }
-        counter++;
+        i += sizeof(uint16_t);
+    }
+
+    while (i < size) {
+        if (aa[i] != bb[i]) {
+            return 0;
+        }
+        i++;
     }
 
     return 1;
@@ -154,7 +224,6 @@ void fstr_replace_chr(fstr *str, const chr from, const chr to) {
 void fstr_remove_at(fstr *str, const usize index, usize length) {
 
     usize startLen = fstr_length(str);
-    usize startPtr = as_ptr(str->data);
 
     if (startLen == 0) {
         return;
@@ -174,6 +243,7 @@ void fstr_remove_at(fstr *str, const usize index, usize length) {
         }
     }
 
+    /*
     usize i, k = 0;
     for (i = 0; i < startLen; i++) {
         if (i < index || i >= (index + length)) {
@@ -181,9 +251,18 @@ void fstr_remove_at(fstr *str, const usize index, usize length) {
             k++;
         }
     }
+     */
+    internal_memmove(str->data + index, str->data + index + length, (startLen - index - length) * sizeof(chr));
+    str->data = realloc(str->data, (startLen - length) * sizeof(chr));
+    internal_fstr_set_end(str, startLen - length);
 
-    str->data = realloc(str->data, k * sizeof(chr));
-    internal_fstr_set_end(str, k);
+    //MEMCPY approach will not work due to overlapping buffers :(
+//    memcpy_internal(str->data + index, str->data + index + length, length);
+//    str->data = realloc(str->data, (startLen - length) * sizeof(chr));
+//    internal_fstr_set_end(str, startLen - length);
+
+//    str->data = realloc(str->data, k * sizeof(chr));
+//    internal_fstr_set_end(str, k);
 }
 
 /// Returns the index of a substring within the string. Returns to fstr_result.u_val
@@ -201,21 +280,11 @@ fstr_result internal_index_of_sub(const fstr *str, const char *buf, const uintpt
     usize i;
     for (i = 0; i < strlen; i++) {
         u8 success = 1;
-        usize k;
 
-        //Checking if substring off this char is legit
-        for (k = 0; k < len; k++) {
-            //If substring u_val is out of bounds
-            if (i + k >= strlen) {
-                success = 0;
-                break;
-            }
-
-            //If the data doesnt match, break the loop
-            if (str->data[i + k] != buf[k]) {
-                success = 0;
-                break;
-            }
+        //Check that our data is within the string
+        if (str->data + i <= str->end) {
+            //Do the comparison
+            success = memeq_internal(str->data + i, buf, len);
         }
 
         if (success) {
@@ -273,8 +342,6 @@ void internal_replace_sub(fstr *str,
 
     usize offset = 0;
 
-    usize removed = 0;
-
     //Iterate our string
     u8 contains = 1;
     while (contains) {
@@ -290,14 +357,23 @@ void internal_replace_sub(fstr *str,
             //Get the distance between our slice start and our string start as the offset
             offset = (as_ptr(slice.data) - as_ptr(str->data));
 
-            //Remove the substring and replace it
-            fstr_remove_at(str, index + offset, oldLen);
-            internal_fstr_insert(str, index + offset, newBuf, newLen);
+            if (newLen == oldLen) {
+                //Basic copy all the data we can
+                memcpy_internal(str->data + index + offset, newBuf, newLen);
 
-            removed++;
+            } else {
+                fstr_remove_at(str, index + offset, oldLen);
+                internal_fstr_insert(str, index + offset, newBuf, newLen);
+            }
+
+
+            //Remove the substring and replace it
+//            fstr_remove_at(str->data + i, index + offset + i, oldLen - i);
+//            internal_fstr_insert(str->data + i, index + offset + i, newBuf + i, newLen - i);
 
             //Update the end of our slice
-            slice.data = str->data + (removed * newLen);
+//            slice.data = str->data + (removed * newLen);
+            slice.data = str->data + offset + newLen;
             slice.end = str->end;
 
             //Do a check to see if we are out of string bounds
@@ -869,6 +945,24 @@ u8 fstr_equals(fstr *a, fstr *b) {
     usize i;
     for (i = 0; i < aLen; i++) {
         if (a->data[i] != b->data[i]) {
+            return 0;
+        }
+    }
+
+    return 1;
+}
+
+u8 fstr_equals_C(fstr *a, chr *b) {
+    usize alen = fstr_length(a);
+    usize blen = internal_C_string_length(b);
+
+    if (alen != blen) {
+        return 0;
+    }
+
+    usize i = 0;
+    for (; i < alen; i++) {
+        if (a->data[i] != b[i]) {
             return 0;
         }
     }
