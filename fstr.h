@@ -86,6 +86,12 @@ chr chr_to_upper(chr a);
 
 
 
+
+
+void memcpy_internal(void *destination, const void *src, usize size);
+
+
+
 #pragma endregion Character
 
 #pragma region String_Creation
