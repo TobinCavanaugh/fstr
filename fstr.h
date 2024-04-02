@@ -66,6 +66,8 @@ typedef struct {
 
 #pragma endregion Definitions
 
+
+
 /////////////////////////////
 /// FUNCTION DECLARATIONS ///
 /////////////////////////////
@@ -338,6 +340,12 @@ void fstr_replace_C(const fstr *str, const chr *oldBuf, const chr *newBuf);
 /// \param oldBuf The old buffer
 /// \param newBuf The new buffer
 void fstr_replace(const fstr *str, const fstr *oldBuf, const fstr *newBuf);
+
+/// Terminates the string at the particular character,
+/// resizing the allocated memory as well
+/// \param str The string to terminate
+/// \param c The character to terminate at
+void fstr_terminate(fstr *str, chr c);
 
 #pragma endregion String_Utilities
 

@@ -730,6 +730,14 @@ fstr *fstr_from_length(usize length, const chr fill) {
     return str;
 }
 
+void fstr_terminate(fstr *str, chr c) {
+    fstr_result res = fstr_index_of_chr(str, c);
+    if(res.success){
+        str->data = realloc(str->data, res.u_val * sizeof(str));
+        internal_fstr_set_end(str, res.u_val);
+    }
+}
+
 fstr *fstr_from_format_C(const char *format, ...) {
 
     //Varargs stuff
