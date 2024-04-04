@@ -65,13 +65,27 @@ void BigFileTest() {
 
 int main() {
 
-//    /*
+    int i;
+    for (i = 0; i < 100; i++) {
+        fstr *cool = fstr_from_C("super awesome ");
+
+        fstr_println(cool);
+        fstr_overwrite_C(cool, i, ":)");
+        fstr_println(cool);
+
+        fstr_free(cool);
+    }
+
+    return 0;
+
+    /*
     int i;
     for (i = 0; i < 10; i++) {
         BigFileTest();
     }
     return 0;
-//     */
+     */
+
 
 
 

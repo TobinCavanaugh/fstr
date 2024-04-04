@@ -14,6 +14,8 @@
 #define u8 uint8_t
 #define FAILURE (fstr_result) {0}
 
+#define MAX(x, y) ((x) > (y) ? (x) : (y))
+#define MIN(x, y) ((x) < (y) ? (x) : (y))
 
 //Internal function prototypes
 #pragma region PROTOTYPES
@@ -732,7 +734,7 @@ fstr *fstr_from_length(usize length, const chr fill) {
 
 void fstr_terminate(fstr *str, chr c) {
     fstr_result res = fstr_index_of_chr(str, c);
-    if(res.success){
+    if (res.success) {
         str->data = realloc(str->data, res.u_val * sizeof(str));
         internal_fstr_set_end(str, res.u_val);
     }
@@ -775,7 +777,7 @@ void fstr_append_format_C(fstr *str, const char *format, ...) {
     usize finalSize = startSize + addSize;
 
     //Reallocate the data of the string to fit our finalSize
-    str->data = realloc(str->data, finalSize * sizeof(chr));
+    str->data = realloc(str->data, (finalSize + 1) * sizeof(chr));
 
     //Return an error if alloc fails
     if (str->data == NULL) {
@@ -790,6 +792,31 @@ void fstr_append_format_C(fstr *str, const char *format, ...) {
     internal_fstr_set_end(str, finalSize / sizeof(chr));
 
     va_end(args);
+}
+
+void internal_fstr_overwrite(fstr *str, usize index, char *buf, usize bufLen) {
+
+    usize strlen = fstr_length(str);
+
+    usize finalSize = MAX(strlen, bufLen + index);
+
+    if (finalSize > strlen) {
+        str->data = realloc(str->data, finalSize * sizeof(chr));
+//        memset(str->data + index, '1', finalSize - index);
+        memset(str->data + strlen, ' ', finalSize - strlen);
+    }
+
+    memcpy(str->data + index, buf, bufLen * sizeof(chr));
+
+    internal_fstr_set_end(str, finalSize);
+}
+
+void fstr_overwrite_C(fstr *str, usize index, chr *buf) {
+    internal_fstr_overwrite(str, index, buf, internal_C_string_length(buf));
+}
+
+void fstr_overwrite(fstr *str, usize index, fstr *buf) {
+    internal_fstr_overwrite(str, index, buf->data, fstr_length(buf));
 }
 
 chr chr_to_invert(chr a) {

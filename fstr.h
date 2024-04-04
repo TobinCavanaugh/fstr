@@ -347,6 +347,19 @@ void fstr_replace(const fstr *str, const fstr *oldBuf, const fstr *newBuf);
 /// \param c The character to terminate at
 void fstr_terminate(fstr *str, chr c);
 
+
+/// Overwrites the contents of the string at index with the buf. Expands the string with spaces if necessary
+/// \param str The string to modify
+/// \param index The index to overwrite the string at, 0 would replace the first characters
+/// \param buf The character buffer to use
+void fstr_overwrite_C(fstr *str, usize index, chr *buf);
+
+/// Overwrites the contents of the string at index with the buf. Expands the string with spaces if necessary
+/// \param str The string to modify
+/// \param index The index to overwrite the string at, 0 would replace the first characters
+/// \param buf The character buffer to use
+void fstr_overwrite(fstr *str, usize index, fstr *buf);
+
 #pragma endregion String_Utilities
 
 #endif //FSTR_FSTR_H
