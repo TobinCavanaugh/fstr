@@ -819,6 +819,30 @@ void fstr_overwrite(fstr *str, usize index, fstr *buf) {
     internal_fstr_overwrite(str, index, buf->data, fstr_length(buf));
 }
 
+void fstr_overwrite_format_C(fstr *str, usize index, chr *format, ...) {
+    //Varargs stuff
+    va_list args;
+    va_start(args, format);
+
+    //Calculate the size of the buffer
+    usize size = _vscprintf(format, args);
+
+    //Create the new string, we divide by sizeof chr in case chars are bigger
+    //TODO This divide could be wrong
+    //TODO Consider making this use stack allocation depending on the size of the string. MAKE SURE TO APPLY TO OTHER FORMAT FUNCTIONS
+    //TODO We can also do this in a better way just straight up
+    fstr *tmp = fstr_from_length(size / sizeof(chr), '!');
+
+    //Write the varargs to the string with the proper format
+    vsprintf(tmp->data, format, args);
+
+    internal_fstr_overwrite(str, index, tmp->data, fstr_length(tmp));
+
+    fstr_free(tmp);
+
+    va_end(args);
+}
+
 chr chr_to_invert(chr a) {
     if (USING_CHAR) {
         if ((a >= 65 && a <= 90) || (a >= 97 && a <= 122)) {
