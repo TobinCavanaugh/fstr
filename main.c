@@ -63,14 +63,17 @@ void BigFileTest() {
     fstr_free(str);
 }
 
+#define ANSI_BACKGROUND_COLOR_ESCAPE "\x1b[48;2;%03d;%03d;%03dm"
+#define ANSI_COLOR_RESET "\x1b[0m"
+
 int main() {
 
     int i;
-    for (i = 0; i < 100; i++) {
+    for (i = 0; i < 255; i++) {
         fstr *cool = fstr_from_C("super awesome ");
 
-        fstr_println(cool);
-        fstr_overwrite_C(cool, i, ":)");
+        fstr_overwrite_format_C(cool, 0, ANSI_BACKGROUND_COLOR_ESCAPE, i, i, i);
+
         fstr_println(cool);
 
         fstr_free(cool);
