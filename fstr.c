@@ -827,8 +827,8 @@ void fstr_overwrite_format_C(fstr *str, usize index, chr *format, ...) {
     //Calculate the size of the buffer
     usize size = _vscprintf(format, args);
 
-    if (size < fstr_length(str)) {
-        vsprintf(str->data, format, args);
+    if (size + index < fstr_length(str)) {
+        vsprintf(str->data + index, format, args);
     } else {
         //Create the new string, we divide by sizeof chr in case chars are bigger
         //TODO This divide could be wrong
