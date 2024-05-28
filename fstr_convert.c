@@ -99,12 +99,6 @@ u64 to_u64(i64 val)
 //     return res;
 // }
 
-/// Calculate an i_val from a string
-/// @param str The string
-/// @return An fstr_result with the result in i_val.
-/// Sides will be trimmed of spaces, non numerical or negative
-/// sign characters cause success to be false, though the i_val
-/// will be the correct value up until that character.
 fstr_result fstr_to_i64(const fstr* str)
 {
     //Make a copy of the string
@@ -167,37 +161,39 @@ fstr_result fstr_to_i64(const fstr* str)
     return result;
 }
 
-/// Calculates a u_val from a binary string, like so "10100001"
-/// @param str The string of the binary
-/// @return An fstr_result with the value in u_val.
-/// Success will be set to false if a non-binary character is found.
-fstr_result fstr_u64_from_bin(fstr* str)
+fstr_result fstr_u64_from_bin_ex(fstr* instr, chr True, chr False)
 {
-    int count = 0;
-    int i = fstr_length(str) - 1;
+    fstr str = *instr;
+
+    //Skip the first two chars
+    if (fstr_starts_with_C(&str, "0b") || fstr_starts_with_C(&str, "0B"))
+    {
+        str.data += 2;
+    }
 
     fstr_result result = {0};
-
+    int count = 0;
+    int i = fstr_length(&str) - 1;
     usize sum = 0;
 
     //Read right to left
     while (i >= 0)
     {
-        chr b = str->data[i];
+        chr b = str.data[i];
 
-        if (b == '1')
+
+        //If using C chars
+        if (b == True)
         {
             sum += pow(2, count);
         }
         //Skip any non 0 and 1 numbers and don't increment the counter.
-        //This counts as being unsuccessful, but may still generate a
-        //correct result
-        else if (b != '0')
+        else if (b != False)
         {
             i--;
-            result.success = 0;
             continue;
         }
+
 
         count++;
         i--;
@@ -209,9 +205,21 @@ fstr_result fstr_u64_from_bin(fstr* str)
     return result;
 }
 
-/// Converts a string to a double
-/// @param str The string to be converted
-/// @return
+fstr_result fstr_u64_from_bin(fstr* str)
+{
+    //Handle digits based on char version
+    chr True = '1';
+    chr False = '0';
+
+    if (sizeof(chr) == sizeof(wchar_t))
+    {
+        True = L'1';
+        False = L'0';
+    }
+
+    return fstr_u64_from_bin_ex(str, True, False);
+}
+
 fstr_result fstr_to_double(fstr* str)
 {
     fstr_result result = {0};
@@ -251,3 +259,4 @@ AfterDecimal:
 
     return result;
 }
+

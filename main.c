@@ -194,4 +194,24 @@ int main()
 
         fstr_free(str);
     }
+
+    {
+        fstr* str = fstr_from_C("0x0101010001");
+
+        printf("%llu\n\n", fstr_u64_from_bin(str).u_val);
+
+        fstr_free(str);
+    }
+
+    {
+        fstr* str = fstr_from_C("ABCDEF");
+        fstr_print_bin(str);
+        fstr_println(NULL);
+        fstr_print_hex(str);
+        fstr_println(NULL);
+        fstr_print_num(str);
+
+
+        fstr_free(str);
+    }
 }
